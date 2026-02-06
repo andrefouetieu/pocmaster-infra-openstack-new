@@ -1,0 +1,27 @@
+# Copier ce fichier en terraform.tfvars et remplir les valeurs.
+# terraform.tfvars est dans .gitignore : ne pas le committer.
+#
+# Option alternative : variables d'environnement TF_VAR_xxx
+#   export TF_VAR_ssh_public_key_default_user="$(cat ~/.ssh/id_rsa.pub)"
+#   export TF_VAR_vpn_user_list='["user1","user2"]'
+
+# Réseau Infomaniak (à adapter à ton projet)
+network_external_id   = "0f9c3806-bd21-490f-918d-4a6d1c648489"
+network_external_name = "ext-floating1"
+network_internal_dev  = "internal_dev"
+network_subnet_cidr   = "10.0.1.0/24"
+
+# Clé SSH publique pour accès aux VMs (sensible : ne pas committer)
+ssh_public_key_default_user = "ssh-rsa AAAA... ton-user@machine"
+
+# Image et type d'instance OpenStack
+instance_image_id    = "cdf81c97-4873-473b-b0a3-f407ce837255"
+instance_flavor_name = "a1-ram2-disk20-perf1"
+
+# Utilisateurs VPN (certificats clients générés pour chaque nom)
+vpn_user_list = ["xpestel"]
+
+# Métadonnées optionnelles
+metadatas = {
+  environment = "dev"
+}

@@ -1,0 +1,5 @@
+- name: install openvpn
+  hosts: openvpn
+  become: true
+  roles:
+    - openvpn_server

@@ -1,0 +1,25 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+terraform/**/*.tfvars
+!terraform/**/*.tfvars.example
+*.auto.tfvars
+.terraform.lock.hcl
+
+# Sensitive / local
+*.pem
+*.ovpn
+.env
+.env.*
+
+# OS
+.DS_Store
+
+# Ansible
+*.retry
+
+# IDE
+.vscode/

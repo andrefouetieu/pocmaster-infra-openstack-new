@@ -1,0 +1,11 @@
+vpn_server_name: "infovpn"
+vpn_key_name: "serverVPN"
+vpn_key_country: "EU"
+vpn_key_province: "FR"
+vpn_key_city: "Paris"
+vpn_key_org: "Xavki"
+vpn_key_email: "xavki@moi.fr"
+vpn_key_ou: "xav"
+vpn_user_list:
+  - xpestel
+vpn_destination_key: "/tmp/"
