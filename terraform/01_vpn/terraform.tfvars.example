@@ -1,9 +1,18 @@
 # Copier ce fichier en terraform.tfvars et remplir les valeurs.
-# terraform.tfvars est dans .gitignore : ne pas le committer.
-#
-# Option alternative : variables d'environnement TF_VAR_xxx
-#   export TF_VAR_ssh_public_key_default_user="$(cat ~/.ssh/id_rsa.pub)"
-#   export TF_VAR_vpn_user_list='["user1","user2"]'
+# terraform.tfvars est dans .gitignore : ne pas le committer (auth OpenStack + clé SSH).
+
+# --- Compte OpenStack : utiliser clouds.yaml (fichier téléchargé depuis OpenStack) ---
+# Si le fichier est dans ~/.config/Infomaniak/clouds.yaml : export OS_CLOUD_CONFIG=~/.config/Infomaniak/clouds.yaml
+openstack_cloud = "PCP-EJ4W6KP-dc3-a"
+
+# --- Ou auth par variables (si openstack_cloud laissé vide) ---
+# openstack_auth_url           = "https://api.pub1.infomaniak.cloud/identity/v3"
+# openstack_username           = "PCU-EJ4W6KP"
+# openstack_password           = "..."
+# openstack_project_name       = "PCP-EJ4W6KP"
+# openstack_region_name        = "dc3-a"
+# openstack_user_domain_name   = "default"
+# openstack_project_domain_name = "default"
 
 # Réseau Infomaniak (à adapter à ton projet)
 network_external_id   = "0f9c3806-bd21-490f-918d-4a6d1c648489"

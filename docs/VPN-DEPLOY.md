@@ -89,24 +89,13 @@ terraform output
 terraform output -json
 ```
 
-Le module instance expose les sorties (voir `modules/instance/outputs.tf`) ; dans `05_ansible.tf` on utilise `module.openvpn.instance_external_ip_random[0]` et `module.openvpn.instance_compute_name[0]`. Pour avoir l’IP directement depuis la racine du projet VPN, il faut que le module soit exposé en output. Si ce n’est pas le cas, tu peux l’ajouter dans `01_vpn` :
-
-```hcl
-output "openvpn_floating_ip" {
-  value = module.openvpn.instance_external_ip_random[0]
-}
-output "openvpn_name" {
-  value = module.openvpn.instance_compute_name[0]
-}
-```
-
-Puis :
+Les outputs sont définis dans `06_outputs.tf`. Connexion SSH :
 
 ```bash
 ssh -i ~/.ssh/id_rsa xavki@$(terraform output -raw openvpn_floating_ip)
 ```
 
-(Si l’output n’existe pas encore, utilise l’IP affichée dans `terraform apply` ou dans la console OpenStack.)
+(Adapter le chemin de la clé si tu utilises une autre clé que `~/.ssh/id_rsa`.)
 
 ---
 

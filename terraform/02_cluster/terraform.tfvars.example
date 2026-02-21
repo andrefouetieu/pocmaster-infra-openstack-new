@@ -1,0 +1,38 @@
+# Copier en terraform.tfvars (non versionné). Stack 02 indépendant de 01_vpn.
+# Ne pas committer terraform.tfvars (contient auth OpenStack + clé SSH).
+
+# --- Compte OpenStack : utiliser clouds.yaml (fichier téléchargé depuis OpenStack) ---
+# Nom du cloud = clé dans clouds.yaml (ex. PCP-EJ4W6KP-dc3-a ou PCP-EJ4W6KP-dc4-a).
+# Si le fichier est dans ~/.config/Infomaniak/clouds.yaml, exécuter avant terraform :
+#   export OS_CLOUD_CONFIG=~/.config/Infomaniak/clouds.yaml
+openstack_cloud = "PCP-EJ4W6KP-dc3-a"
+
+# User Linux créé sur les VMs (cloud-init) et utilisé par Ansible pour SSH. Mets ton login (ex. mac, toi, ubuntu).
+vm_ssh_user = "ubuntu"
+
+# --- Ou auth par variables (si openstack_cloud laissé vide) ---
+# openstack_auth_url           = "https://api.pub1.infomaniak.cloud/identity/v3"
+# openstack_username           = "PCU-EJ4W6KP"
+# openstack_password           = "..."
+# openstack_project_name       = "PCP-EJ4W6KP"
+# openstack_region_name        = "dc3-a"
+# openstack_user_domain_name   = "default"
+# openstack_project_domain_name = "default"
+
+# Clé SSH publique (accès aux VMs)
+ssh_public_key_default_user = "ssh-ed25519 AAAA... user@host"
+
+# Réseau externe Infomaniak (pour le routeur du cluster)
+network_external_id   = "0f9c3806-bd21-490f-918d-4a6d1c648489"
+network_external_name = "ext-floating1"
+
+# Réseau du cluster (par défaut 10.0.2.0/24, distinct de 01_vpn)
+cluster_network_name = "cluster_network"
+network_subnet_cidr  = "10.0.2.0/24"
+
+# Optionnel : IP flottante sur le master pour accès SSH/kubectl sans VPN
+k8s_master_floating_ip = false
+
+# Image et flavor OpenStack
+instance_image_id    = "cdf81c97-4873-473b-b0a3-f407ce837255"
+instance_flavor_name = "a1-ram2-disk20-perf1"

@@ -7,18 +7,15 @@ terraform {
     }
   }
 
-  backend "http" {
-    address        = "https://gitlab.com/api/v4/projects/61352701/terraform/state/state_vpn"
-    lock_address   = "https://gitlab.com/api/v4/projects/61352701/terraform/state/state_vpn/lock"
-    unlock_address = "https://gitlab.com/api/v4/projects/61352701/terraform/state/state_vpn/lock"
-    lock_method    = "POST"
-    unlock_method  = "DELETE"
-    retry_wait_min = 5
-  }
+  # State stocké dans AWS S3. Toute la config est passée via -backend-config (ex. backend.s3.hcl).
+  # Credentials AWS : AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY ou ~/.aws/credentials.
+  backend "s3" {}
 }
 
-# Authentification OpenStack : si openstack_cloud défini → clouds.yaml ; sinon variables openstack_*.
-# Pour clouds.yaml hors emplacement standard : export OS_CLOUD_CONFIG=... avant terraform.
+# Authentification OpenStack :
+# - Si openstack_cloud est défini dans tfvars → utilisation de clouds.yaml (nom du cloud).
+# - Sinon → auth via les variables openstack_auth_url, openstack_username, etc.
+# Pour un clouds.yaml hors emplacement standard : export OS_CLOUD_CONFIG=... avant terraform.
 provider "openstack" {
   cloud               = var.openstack_cloud != "" ? var.openstack_cloud : null
   auth_url            = var.openstack_cloud == "" ? var.openstack_auth_url : null

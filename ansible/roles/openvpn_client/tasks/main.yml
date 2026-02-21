@@ -1,9 +1,8 @@
 ---
 # tasks file for roles/openvpn_client
-
+# vpn_user_list peut être une liste (group_vars) ou une chaîne (Terraform -e vpn_user_list=foo)
 - name: "Create client - {{ item }}"
   include_tasks: create_client.yml
-  loop:
-  - "{{ vpn_user_list }}"
+  loop: "{{ [vpn_user_list] if vpn_user_list is string else (vpn_user_list | default([])) }}"
   tags:
-  - fetch
+    - fetch

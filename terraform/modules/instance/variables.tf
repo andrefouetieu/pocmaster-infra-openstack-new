@@ -42,6 +42,13 @@ variable "instance_ssh_key" {
   type = string
 }
 
+# Utilisateur créé par cloud-init sur la VM (avec instance_ssh_key) ; Ansible doit utiliser le même.
+variable "instance_ssh_user" {
+  type        = string
+  default     = "xavki"
+  description = "Nom de l'utilisateur Linux pour SSH (créé par userdata ; mettre ton login pour utiliser -u avec Ansible)"
+}
+
 variable "instance_network_internal" {
   type    = string
 }

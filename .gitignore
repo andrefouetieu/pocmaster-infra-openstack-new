@@ -6,6 +6,8 @@
 *.tfstate.backup
 terraform/**/*.tfvars
 !terraform/**/*.tfvars.example
+terraform/**/backend.*.hcl
+!terraform/**/backend.*.example.hcl
 *.auto.tfvars
 .terraform.lock.hcl
 
@@ -13,6 +15,7 @@ terraform/**/*.tfvars
 *.pem
 *.ovpn
 .env
+*.env
 .env.*
 
 # OS
