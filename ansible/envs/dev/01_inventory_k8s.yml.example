@@ -1,0 +1,23 @@
+# Exemple d'inventaire pour le cluster K8s.
+# Copier en 01_inventory_k8s.yml et remplacer les IP par les sorties Terraform :
+#   cd terraform/02_infrastructure && terraform output
+#   k8s_master_internal_ip  -> master
+#   k8s_worker_internal_ips -> workers
+# Connexion : après connexion au VPN, ces IPs sont accessibles (réseau 10.0.1.0/24).
+
+all:
+  children:
+    k8s_master:
+      hosts:
+        k8s-master1:
+          ansible_host: 10.0.1.XX   # IP du master (terraform output k8s_master_internal_ip)
+    k8s_worker:
+      hosts:
+        k8s-worker1:
+          ansible_host: 10.0.1.YY   # terraform output -json k8s_worker_internal_ips
+        k8s-worker2:
+          ansible_host: 10.0.1.ZZ
+
+  vars:
+    ansible_user: xavki
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa

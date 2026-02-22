@@ -1,0 +1,63 @@
+---
+- name: Validate K3s join parameters
+  ansible.builtin.assert:
+    that:
+      - k3s_master_url is defined
+      - k3s_token is defined
+    fail_msg: "k3s_master_url et k3s_token doivent être définis (fournis par le playbook depuis le master)."
+
+- name: Install dependencies
+  ansible.builtin.apt:
+    name: [curl, ca-certificates]
+    state: present
+    update_cache: true
+  when: ansible_os_family == "Debian"
+
+- name: Install K3s agent
+  ansible.builtin.shell: |
+    set -e
+    curl -sfL {{ k3s_install_url | default('https://get.k3s.io') }} | sh -s - agent
+  args:
+    creates: /usr/local/bin/k3s
+  environment:
+    K3S_URL: "{{ k3s_master_url }}"
+    K3S_TOKEN: "{{ k3s_token }}"
+  register: _k3s_install
+
+# Toujours écrire l'env (IP interne du master) et redémarrer : corrige le cas où
+# l'install a été skippée (creates) mais l'env avait une mauvaise URL (ex. IP flottante).
+- name: Ensure k3s-agent env file (K3S_URL = IP interne du master)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/k3s-agent.service.env
+    content: |
+      K3S_URL={{ k3s_master_url }}
+      K3S_TOKEN={{ k3s_token }}
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Restart k3s-agent to apply env
+  ansible.builtin.systemd:
+    name: k3s-agent
+    state: restarted
+    daemon_reload: true
+
+- name: Wait for k3s-agent to register (or show journal on failure)
+  ansible.builtin.wait_for:
+    path: /var/lib/rancher/k3s/agent/node-name
+    state: present
+    timeout: 90
+  register: _wait_agent
+  failed_when: false
+
+- name: Show k3s-agent journal if service did not become ready
+  ansible.builtin.command: journalctl -u k3s-agent -n 40 --no-pager
+  register: _journal
+  when: _wait_agent.failed | default(false)
+  changed_when: false
+  failed_when: false
+
+- name: Fail with journal output if agent did not join
+  ansible.builtin.fail:
+    msg: "k3s-agent n'a pas rejoint le master. Journal:\n{{ _journal.stdout if (_journal is defined and _journal.stdout is defined) else 'N/A' }}"
+  when: _wait_agent.failed | default(false)

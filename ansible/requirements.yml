@@ -1,0 +1,5 @@
+---
+# Collections requises pour les rôles OpenVPN (ex. community.general.iptables_state)
+collections:
+  - name: community.general
+    version: ">=3.0.0"

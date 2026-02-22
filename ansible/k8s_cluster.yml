@@ -1,0 +1,26 @@
+---
+# Déploiement du cluster K3s : 1 master + 2 workers.
+# Inventaire : groupes k8s_master et k8s_worker (IPs = sorties Terraform 02_infrastructure).
+# Connexion : en général via VPN (réseau 10.0.1.0/24), user xavki, clé SSH.
+
+- name: Install K3s server (master)
+  hosts: k8s_master
+  become: true
+  roles:
+    - k3s_server
+
+# Les workers doivent joindre l'API K3s via l'IP *interne* du master (réseau 10.0.2.x),
+# pas via l'IP flottante (qui n'est en général pas routable depuis le réseau privé).
+- name: Install K3s agents (workers)
+  hosts: k8s_worker
+  become: true
+  vars:
+    k3s_master_url: "https://{{ hostvars[groups['k8s_master'][0]]['ansible_default_ipv4']['address'] }}:6443"
+    k3s_token: "{{ hostvars[groups['k8s_master'][0]]['k3s_node_token'] }}"
+  pre_tasks:
+    - name: Debug K3s master URL used for agents
+      ansible.builtin.debug:
+        msg: "k3s_master_url={{ k3s_master_url }} (master internal IP)"
+      run_once: true
+  roles:
+    - k3s_agent
