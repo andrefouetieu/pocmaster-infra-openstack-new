@@ -67,3 +67,25 @@ resource "openstack_networking_secgroup_rule_v2" "cluster_master_k8s_api" {
   remote_ip_prefix  = "0.0.0.0/0"
   security_group_id = openstack_networking_secgroup_v2.cluster_master_public[0].id
 }
+
+resource "openstack_networking_secgroup_rule_v2" "cluster_master_http_apps" {
+  count             = var.k8s_master_floating_ip ? 1 : 0
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 8080
+  port_range_max    = 9100
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.cluster_master_public[0].id
+}
+
+resource "openstack_networking_secgroup_rule_v2" "cluster_master_nodeport" {
+  count             = var.k8s_master_floating_ip ? 1 : 0
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 30000
+  port_range_max    = 32767
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.cluster_master_public[0].id
+}
