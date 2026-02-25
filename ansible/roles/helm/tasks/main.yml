@@ -1,0 +1,50 @@
+---
+- name: Check if Helm is already installed
+  ansible.builtin.stat:
+    path: "{{ helm_install_path }}/helm"
+  register: _helm_installed
+
+- name: Set Helm download URL
+  ansible.builtin.set_fact:
+    _helm_tarball_url: "https://get.helm.sh/helm-{{ helm_version }}-{{ helm_arch }}.tar.gz"
+  when: not _helm_installed.stat.exists
+
+- name: Create temp directory for Helm
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: helm_
+  register: _helm_tmp
+  when: not _helm_installed.stat.exists
+
+- name: Download Helm tarball
+  ansible.builtin.get_url:
+    url: "{{ _helm_tarball_url }}"
+    dest: "{{ _helm_tmp.path }}/helm.tar.gz"
+    mode: "0644"
+  when: not _helm_installed.stat.exists
+
+- name: Unarchive Helm tarball
+  ansible.builtin.unarchive:
+    src: "{{ _helm_tmp.path }}/helm.tar.gz"
+    dest: "{{ _helm_tmp.path }}"
+    remote_src: true
+    creates: "{{ _helm_tmp.path }}/{{ helm_arch }}/helm"
+  when: not _helm_installed.stat.exists
+
+- name: Install Helm binary
+  ansible.builtin.copy:
+    src: "{{ _helm_tmp.path }}/{{ helm_arch }}/helm"
+    dest: "{{ helm_install_path }}/helm"
+    mode: "0755"
+    remote_src: true
+  when: not _helm_installed.stat.exists
+
+- name: Cleanup Helm temp dir
+  ansible.builtin.file:
+    path: "{{ _helm_tmp.path }}"
+    state: absent
+  when: _helm_tmp is defined and _helm_tmp.path is defined
+
+- name: Verify Helm installation
+  ansible.builtin.command: helm version
+  changed_when: false

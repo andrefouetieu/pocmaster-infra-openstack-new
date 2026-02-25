@@ -1,0 +1,6 @@
+---
+# Version Helm (ex. v3.17.3). Vide = utiliser la version par défaut ci-dessous.
+helm_version: "v3.17.3"
+helm_install_path: /usr/local/bin
+# Architecture du binaire (linux-amd64, linux-arm64, etc.)
+helm_arch: "linux-amd64"

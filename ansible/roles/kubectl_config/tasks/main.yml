@@ -1,0 +1,18 @@
+---
+# Configure kubectl pour l'utilisateur SSH : équivalent de
+#   mkdir -p ~/.kube
+#   sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+#   sudo chown $(id -u):$(id -g) ~/.kube/config
+#   chmod 600 ~/.kube/config
+#   echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+#   source ~/.bashrc
+- name: Configure kubectl for SSH user
+  ansible.builtin.shell: |
+    mkdir -p {{ ansible_user_dir }}/.kube
+    cp {{ kubectl_config_k3s_config_path }} {{ ansible_user_dir }}/.kube/config
+    chown $(id -u {{ ansible_user_id }}):$(id -g {{ ansible_user_id }}) {{ ansible_user_dir }}/.kube/config
+    chmod 600 {{ ansible_user_dir }}/.kube/config
+    grep -qFx "export KUBECONFIG=~/.kube/config" {{ ansible_user_dir }}/.bashrc 2>/dev/null || echo 'export KUBECONFIG=~/.kube/config' >> {{ ansible_user_dir }}/.bashrc
+  args:
+    executable: /bin/bash
+  become: true

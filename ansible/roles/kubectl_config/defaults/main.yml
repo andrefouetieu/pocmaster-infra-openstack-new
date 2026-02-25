@@ -1,0 +1,3 @@
+---
+# Chemin de la kubeconfig K3s sur le master (lecture root)
+kubectl_config_k3s_config_path: /etc/rancher/k3s/k3s.yaml
