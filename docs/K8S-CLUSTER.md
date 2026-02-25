@@ -87,6 +87,28 @@ ansible-playbook -i envs/dev/01_inventory_k8s.yml k8s_cluster.yml -u xavki --pri
 
 Ensuite : `kubectl get nodes`, `kubectl get pods -A`, et déploiement de tes projets K8s comme d’habitude.
 
+### Configuration kubectl sur le master (optionnel)
+
+Pour utiliser `kubectl` sans `sudo` lorsque tu te connectes en SSH sur le master, lance le playbook de configuration kubectl (même inventaire et options que `k8s_cluster.yml`) :
+
+```bash
+cd ansible
+ansible-playbook -i envs/dev/01_inventory_k8s.yml k8s_kubectl_config.yml -u xavki --private-key ~/.ssh/id_rsa
+```
+
+Cela copie `/etc/rancher/k3s/k3s.yaml` vers `~/.kube/config` pour ton utilisateur SSH et ajoute `KUBECONFIG` dans `~/.bashrc`. Après coup, en SSH sur le master, `kubectl` fonctionne sans sudo.
+
+### Installer Helm
+
+Pour installer Helm sur le master et travailler avec les charts :
+
+```bash
+cd ansible
+ansible-playbook -i envs/dev/01_inventory_k8s.yml k8s_helm.yml -u xavki --private-key ~/.ssh/id_rsa
+```
+
+Helm est installé dans `/usr/local/bin/helm` sur le master. Tu peux ensuite utiliser `helm` en SSH sur le master ou depuis ta machine si tu pointes `kubectl` / kubeconfig vers le cluster.
+
 ---
 
 ## Ordre si tu utilises les deux stacks

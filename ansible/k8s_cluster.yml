@@ -9,6 +9,12 @@
   roles:
     - k3s_server
 
+- name: Configure kubectl on K3s master
+  hosts: k8s_master
+  become: true
+  roles:
+    - kubectl_config
+
 # Les workers doivent joindre l'API K3s via l'IP *interne* du master (réseau 10.0.2.x),
 # pas via l'IP flottante (qui n'est en général pas routable depuis le réseau privé).
 - name: Install K3s agents (workers)
@@ -24,3 +30,9 @@
       run_once: true
   roles:
     - k3s_agent
+
+- name: Install Helm on K3s master
+  hosts: k8s_master
+  become: true
+  roles:
+    - helm

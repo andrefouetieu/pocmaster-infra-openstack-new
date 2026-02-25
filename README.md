@@ -30,13 +30,17 @@ cd ansible && ansible-galaxy collection install -r requirements.yml
 │   ├── openvpn_server.yml      # Configure le serveur VPN sur la VM
 │   ├── openvpn_client.yml      # Génère les configs client (.ovpn) et les récupère
 │   ├── k8s_cluster.yml         # Installe K3s (master + workers)
+│   ├── k8s_kubectl_config.yml  # Configure kubectl sur le master (optionnel)
+│   ├── k8s_helm.yml            # Installe Helm sur le master (optionnel)
 │   ├── ansible.cfg
 │   ├── envs/dev/               # Inventaire et variables (dev)
 │   └── roles/
 │       ├── openvpn_server/     # Serveur OpenVPN
 │       ├── openvpn_client/     # Clients OpenVPN (.ovpn)
 │       ├── k3s_server/          # K3s master (control-plane)
-│       └── k3s_agent/          # K3s workers
+│       ├── k3s_agent/           # K3s workers
+│       ├── kubectl_config/      # Config kubectl (~/.kube/config sur le master)
+│       └── helm/                # Installation Helm
 ├── terraform/
 │   ├── 01_vpn/                 # Stack VPN : réseau, VM OpenVPN, security groups
 │   ├── 02_infrastructure/     # Stack K8s : 1 master + 2 workers (indépendant de 01, peut être renommé en 02_clusters)
@@ -98,6 +102,10 @@ Le stack **02** (dossier `02_infrastructure`, que tu peux renommer en **02_clust
 2. `terraform init && terraform apply` → 3 VMs (1 master, 2 workers).
 3. Optionnel : `k8s_master_floating_ip = true` pour accéder au master depuis internet (SSH + kubectl) sans VPN.
 4. Ansible : inventaire avec les IPs → `k8s_cluster.yml` pour installer K3s.
+5. **Configuration kubectl et Helm (optionnel)** : après le cluster, tu peux lancer :
+   - `ansible-playbook -i <inventaire> k8s_kubectl_config.yml` pour configurer kubectl sur le master (utilisation sans `sudo` en SSH).
+   - `ansible-playbook -i <inventaire> k8s_helm.yml` pour installer Helm sur le master (charts).
+   Même `-u` et `--private-key` que pour `k8s_cluster.yml` (ex. `-u xavki --private-key ~/.ssh/id_rsa`).
 
 Voir [docs/K8S-CLUSTER.md](docs/K8S-CLUSTER.md) pour le détail.
 
