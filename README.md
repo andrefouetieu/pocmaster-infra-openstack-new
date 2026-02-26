@@ -2,8 +2,10 @@
 
 Déploiement sur le cloud Infomaniak (OpenStack) avec **Terraform** et **Ansible** :
 
-- **01_vpn** : serveur **OpenVPN** (réseau, VM, génération des clients `.ovpn`).
-- **02_infrastructure** : cluster **Kubernetes (K3s)** — 1 master + 2 workers, sur le même réseau que le VPN. Accès au cluster via le VPN pour déployer des projets K8s.
+- **infra_platform** : cluster K8s pour outils plateforme (Vault, Kafka, etc.)
+- **infra_app** : cluster K8s dédié aux applications
+- **deploy_vpn** : installer OpenVPN sur le master (accès cluster via VPN)
+- **tools/** : charts Helm (Vault, etc.) à installer manuellement sur un cluster créé
 
 ---
 
@@ -11,8 +13,8 @@ Déploiement sur le cloud Infomaniak (OpenStack) avec **Terraform** et **Ansible
 
 - **Terraform** >= 0.14
 - **Ansible**
-- Compte **Infomaniak** (OpenStack) et credentials configurés (variables d’environnement ou `clouds.yaml`)
-- Clé SSH (publique fournie à Terraform, privée pour se connecter à la VM)
+- Compte **Infomaniak** (OpenStack) et credentials configurés (variables d'environnement ou `clouds.yaml`)
+- Clé SSH (publique fournie à Terraform, privée pour se connecter aux VMs)
 
 Installation des collections Ansible (pour le rôle openvpn_server) :
 
@@ -26,95 +28,68 @@ cd ansible && ansible-galaxy collection install -r requirements.yml
 
 ```
 .
-├── ansible/                    # Playbooks et rôles Ansible
-│   ├── openvpn_server.yml      # Configure le serveur VPN sur la VM
-│   ├── openvpn_client.yml      # Génère les configs client (.ovpn) et les récupère
-│   ├── k8s_cluster.yml         # Installe K3s (master + workers)
-│   ├── k8s_kubectl_config.yml  # Configure kubectl sur le master (optionnel)
-│   ├── k8s_helm.yml            # Installe Helm sur le master (optionnel)
-│   ├── ansible.cfg
-│   ├── envs/dev/               # Inventaire et variables (dev)
-│   └── roles/
-│       ├── openvpn_server/     # Serveur OpenVPN
-│       ├── openvpn_client/     # Clients OpenVPN (.ovpn)
-│       ├── k3s_server/          # K3s master (control-plane)
-│       ├── k3s_agent/           # K3s workers
-│       ├── kubectl_config/      # Config kubectl (~/.kube/config sur le master)
-│       └── helm/                # Installation Helm
+├── ansible/
+│   ├── openvpn_server.yml      # OpenVPN sur le master
+│   ├── openvpn_client.yml      # Génère les .ovpn
+│   ├── k8s_cluster.yml         # K3s (master + workers)
+│   └── roles/...
 ├── terraform/
-│   ├── 01_vpn/                 # Stack VPN : réseau, VM OpenVPN, security groups
-│   ├── 02_infrastructure/     # Stack K8s : 1 master + 2 workers (indépendant de 01, peut être renommé en 02_clusters)
+│   ├── infra_platform/         # Cluster plateforme (Vault, Kafka, etc.)
+│   ├── infra_app/              # Cluster dédié applications
 │   └── modules/
-│       ├── instance/           # VM OpenStack (cloud-init, floating IP, etc.)
-│       └── network/            # Réseau + subnet + routeur
+│       ├── vps/                # Module VPS (optionnel, non utilisé par défaut)
+│       ├── cluster/            # Cluster K3s + OpenVPN sur master
+│       ├── instance/
+│       └── network/
+├── tools/
+│   ├── README.md
+│   └── vault/
+│       ├── values.yaml
+│       ├── install.sh
+│       └── README.md
 └── docs/
-    ├── VPN-DEPLOY.md          # VPN : variables, déploiement, accès SSH
-    └── K8S-CLUSTER.md         # Cluster K8s : Terraform, Ansible, kubectl via VPN
+    ├── INFRA.md
+    ├── ARCHITECTURE.md
+    ├── VPN-DEPLOY.md
+    └── K8S-CLUSTER.md
 ```
 
 ---
 
-## Déploiement rapide (VPN)
+## Déploiement rapide
 
-1. **Variables** (obligatoire : ne pas committer de clés)  
-   - Copier `terraform/01_vpn/terraform.tfvars.example` en `terraform/01_vpn/terraform.tfvars`  
-   - Renseigner au minimum `ssh_public_key_default_user` (ta clé publique SSH).
+### infra_platform (cluster pour Vault, Kafka, etc.)
 
-2. **Lancer Terraform** (depuis la racine du dépôt ou depuis `terraform/01_vpn`) :
+```bash
+cd terraform/infra_platform
+cp terraform.tfvars.example terraform.tfvars
+# Éditer terraform.tfvars (ssh_public_key_default_user)
+terraform init && terraform apply
+# Vault : install_vault=true dans tfvars, ou manuellement cd ../../tools/vault && ./install.sh
+```
 
-   ```bash
-   cd terraform/01_vpn
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+### infra_app (cluster pour applications)
 
-   Terraform crée le réseau, la VM OpenVPN avec une IP flottante, puis lance Ansible (serveur puis un client par utilisateur dans `vpn_user_list`). Les fichiers `.ovpn` sont récupérés sur la machine qui exécute Terraform (par défaut dans `/tmp/`).
+```bash
+cd terraform/infra_app
+cp terraform.tfvars.example terraform.tfvars
+terraform init && terraform apply
+# Déployer les apps via Helm, kubectl ou GitOps
+```
 
-3. **Connexion SSH au serveur**  
-   User : `xavki` (défini dans le module instance).  
-   Récupérer l’IP flottante :
+### Accès via VPN (deploy_vpn = true)
 
-   ```bash
-   cd terraform/01_vpn
-   ssh -i ~/.ssh/id_rsa xavki@$(terraform output -raw openvpn_floating_ip)
-   ```
-
-   (Adapter le chemin de la clé si besoin.)
-
----
-
-## OpenVPN : serveur vs client (dans ce dépôt)
-
-| | **OpenVPN Server** | **OpenVPN Client** |
-|---|-------------------|---------------------|
-| **Rôle** | Service qui tourne sur la **VM** (cloud). Écoute sur le port 1194 (UDP). | Pas un service : le rôle Ansible **génère** les configs client (certificats + `.ovpn`) et les **récupère** sur ta machine. |
-| **Ansible** | Installe OpenVPN + easy-rsa, crée la CA, le certificat serveur, la config, iptables, démarre le service. | Pour chaque utilisateur : génère un certificat client, construit un fichier `.ovpn` tout-en-un, puis le **fetch** vers ton poste. |
-| **Utilisation** | Une fois déployé, les clients se connectent à ce serveur avec leur `.ovpn`. | Importer le `.ovpn` dans un client OpenVPN (Tunnelblick, OpenVPN GUI, etc.) pour se connecter au serveur. |
-
----
-
-## Cluster Kubernetes (stack 02 indépendant)
-
-Le stack **02** (dossier `02_infrastructure`, que tu peux renommer en **02_clusters**) peut être déployé **sans 01_vpn** : il crée son propre réseau (10.0.2.0/24), keypair et security groups.
-
-1. `cd terraform/02_infrastructure` (ou `02_clusters`), remplir `terraform.tfvars` (ex. `ssh_public_key_default_user`).
-2. `terraform init && terraform apply` → 3 VMs (1 master, 2 workers).
-3. Optionnel : `k8s_master_floating_ip = true` pour accéder au master depuis internet (SSH + kubectl) sans VPN.
-4. Ansible : inventaire avec les IPs → `k8s_cluster.yml` pour installer K3s.
-5. **Configuration kubectl et Helm (optionnel)** : après le cluster, tu peux lancer :
-   - `ansible-playbook -i <inventaire> k8s_kubectl_config.yml` pour configurer kubectl sur le master (utilisation sans `sudo` en SSH).
-   - `ansible-playbook -i <inventaire> k8s_helm.yml` pour installer Helm sur le master (charts).
-   Même `-u` et `--private-key` que pour `k8s_cluster.yml` (ex. `-u xavki --private-key ~/.ssh/id_rsa`).
-
-Voir [docs/K8S-CLUSTER.md](docs/K8S-CLUSTER.md) pour le détail.
+Dans `terraform.tfvars` : `deploy_vpn = true`, `vpn_user_list = ["user1"]`. OpenVPN est installé **sur le master** du cluster. Les clients se connectent à l’IP du master (k8s_master_floating_ip) pour joindre le cluster via VPN.
 
 ---
 
 ## Documentation détaillée
 
-- **VPN** — variables sensibles, déploiement, accès SSH : [docs/VPN-DEPLOY.md](docs/VPN-DEPLOY.md).
-- **Cluster K8s** — Terraform, Ansible, accès kubectl via VPN : [docs/K8S-CLUSTER.md](docs/K8S-CLUSTER.md).
+- **Infras** — infra_platform, infra_app, deploy_vpn : [docs/INFRA.md](docs/INFRA.md)
+- **Architecture** — VPN sur master, K8s : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **VPN** — déploiement, accès : [docs/VPN-DEPLOY.md](docs/VPN-DEPLOY.md)
+- **Cluster K8s** — kubectl, Helm : [docs/K8S-CLUSTER.md](docs/K8S-CLUSTER.md)
+- **Tools** — charts Helm : [tools/README.md](tools/README.md)
 
 ---
 

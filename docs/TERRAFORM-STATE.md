@@ -8,20 +8,20 @@ Ce projet a **deux stacks Terraform** avec des backends différents. Chaque stac
 
 | Stack        | Dossier              | Backend        | Stockage du state                          |
 |-------------|----------------------|----------------|--------------------------------------------|
-| **VPN**     | `terraform/01_vpn/`  | `http`         | GitLab (API HTTP, projet 61352701)         |
+| **VPN**     | `terraform/01_vps/`  | `http`         | GitLab (API HTTP, projet 61352701)         |
 | **Cluster** | `terraform/02_cluster/` | `s3`        | AWS S3 + DynamoDB (verrouillage)           |
 
-- **01_vpn** : state et lock gérés par GitLab. Il faut les droits sur le projet et, si besoin, un token pour l’API.
+- **01_vps** : state et lock gérés par GitLab. Il faut les droits sur le projet et, si besoin, un token pour l’API.
 - **02_cluster** : state dans un bucket S3, lock dans une table DynamoDB. Il faut un compte AWS et les credentials (variables d’environnement ou `~/.aws/credentials`).
 
 ---
 
 ## Initialiser le backend (state)
 
-### 01_vpn (GitLab)
+### 01_vps (GitLab)
 
 ```bash
-cd terraform/01_vpn
+cd terraform/01_vps
 terraform init
 ```
 
@@ -49,7 +49,7 @@ Ne pas committer `backend.s3.hcl` (fichier ignoré par Git).
 
 ## Commandes utiles pour le state
 
-À exécuter **dans le dossier du stack** concerné (`01_vpn` ou `02_cluster`).
+À exécuter **dans le dossier du stack** concerné (`01_vps` ou `02_cluster`).
 
 | Commande | Rôle |
 |----------|------|
@@ -70,7 +70,7 @@ terraform state pull > backup-state-$(date +%Y%m%d).json
 
 ## Verrouillage (lock)
 
-- **01_vpn** : le backend `http` utilise le lock GitLab (automatique).
+- **01_vps** : le backend `http` utilise le lock GitLab (automatique).
 - **02_cluster** : le backend S3 utilise la table DynamoDB pour le lock. Tant que `terraform apply` (ou `plan` avec lock) tourne, un autre `apply` sur le même state attendra ou échouera avec une erreur de lock.
 
 En cas de **lock resté bloqué** (crash, interruption) :

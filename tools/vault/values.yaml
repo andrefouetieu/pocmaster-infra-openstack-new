@@ -1,0 +1,17 @@
+# Values pour le chart Helm HashiCorp Vault.
+# Personnaliser selon l'environnement (dev, prod).
+
+server:
+  standalone:
+    enabled: true
+  dataStorage:
+    enabled: true
+  service:
+    type: NodePort
+    nodePort: 30200
+
+ui:
+  enabled: true
+
+injector:
+  enabled: false

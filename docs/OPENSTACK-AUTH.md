@@ -6,10 +6,10 @@ Tu peux configurer l’authentification OpenStack **dans un fichier tfvars** (re
 
 ## Méthode recommandée : terraform.tfvars
 
-Les stacks **01_vpn** et **02_cluster** exposent des variables pour l’auth OpenStack et un bloc `provider "openstack"` qui les utilise.
+Les stacks **01_vps** et **02_cluster** exposent des variables pour l’auth OpenStack et un bloc `provider "openstack"` qui les utilise.
 
 1. Copier le fichier exemple :  
-   `terraform/01_vpn/terraform.tfvars.example` → `terraform/01_vpn/terraform.tfvars`  
+   `terraform/01_vps/terraform.tfvars.example` → `terraform/01_vps/terraform.tfvars`  
    (et idem pour `02_cluster` si tu utilises ce stack).
 
 2. **Deux façons de remplir l’auth dans `terraform.tfvars` :**

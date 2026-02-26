@@ -5,20 +5,13 @@ terraform {
       source  = "terraform-provider-openstack/openstack"
       version = "~> 3.4.0"
     }
-  }
-
-  backend "http" {
-    address        = "https://gitlab.com/api/v4/projects/61352701/terraform/state/state_vpn"
-    lock_address   = "https://gitlab.com/api/v4/projects/61352701/terraform/state/state_vpn/lock"
-    unlock_address = "https://gitlab.com/api/v4/projects/61352701/terraform/state/state_vpn/lock"
-    lock_method    = "POST"
-    unlock_method  = "DELETE"
-    retry_wait_min = 5
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
   }
 }
 
-# Authentification OpenStack : si openstack_cloud défini → clouds.yaml ; sinon variables openstack_*.
-# Pour clouds.yaml hors emplacement standard : export OS_CLOUD_CONFIG=... avant terraform.
 provider "openstack" {
   cloud               = var.openstack_cloud != "" ? var.openstack_cloud : null
   auth_url            = var.openstack_cloud == "" ? var.openstack_auth_url : null
@@ -29,5 +22,3 @@ provider "openstack" {
   user_domain_name    = var.openstack_cloud == "" ? var.openstack_user_domain_name : null
   project_domain_name = var.openstack_cloud == "" ? var.openstack_project_domain_name : null
 }
-
-  

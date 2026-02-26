@@ -1,0 +1,22 @@
+# Copier en terraform.tfvars (non versionné).
+# infra_app : cluster K8s dédié aux applications.
+
+infra_name = "app"
+network_external_id   = "0f9c3806-bd21-490f-918d-4a6d1c648489"
+network_external_name = "ext-floating1"
+
+ssh_public_key_default_user = "ssh-rsa AAAA... ton-user@machine"
+vm_ssh_user = "ubuntu"
+
+# VPN : OpenVPN sur le master (accès sécurisé au cluster)
+deploy_vpn             = false
+vpn_user_list          = []
+
+# Cluster K8s dédié applications
+deploy_k8s             = true
+cluster_subnet_cidr    = "10.0.20.0/24"
+k8s_worker_count       = 2
+k8s_master_floating_ip = true
+run_k8s_ansible_after_apply = true
+
+# Après apply : déployer les apps via Helm, kubectl ou GitOps
