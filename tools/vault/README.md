@@ -29,3 +29,7 @@ Adapter `values.yaml` selon l’environnement (dev/prod).
 - **UI** : `http://<MASTER_IP>:30200/ui`
 
 Récupérer l’IP du master : `terraform output -raw k8s_master_floating_ip` (depuis `terraform/infra_platform`).
+
+## Documentation complète
+
+Pour l'authentification (user/password, SSO, Active Directory) : [docs/VAULT.md](../../docs/VAULT.md).

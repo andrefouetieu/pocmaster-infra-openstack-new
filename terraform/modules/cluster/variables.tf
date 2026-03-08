@@ -56,6 +56,11 @@ variable "vpn_user_list" {
   default     = []
   description = "Utilisateurs pour les certificats .ovpn (si deploy_vpn)"
 }
+variable "install_vault" {
+  type        = bool
+  default     = false
+  description = "Installer HashiCorp Vault via Helm (Ansible) après K3s"
+}
 variable "ansible_base_path" {
   type = string
 }

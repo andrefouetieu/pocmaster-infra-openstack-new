@@ -1,0 +1,24 @@
+{
+  "vault": {
+    "addr": "http://84.234.25.240:30200",
+    "unseal_key": "UNSEAL_KEY_ICI",
+    "root_token": "hvs.TOKEN_ROOT_ICI"
+  },
+  "superadmin": {
+    "username": "superadmin",
+    "password": "MOT_DE_PASSE_ICI"
+  },
+  "kubernetes": {
+    "host_ip": "84.234.27.133",
+    "ca_cert_path": "/tmp/app-cluster-ca.crt",
+    "jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6...",
+    "namespace": "default",
+    "sa_token_reviewer": "vault-auth",
+    "sa_app": "app-sa"
+  },
+  "vault_role": {
+    "name": "app-role",
+    "policy": "app-policy",
+    "ttl": "1h"
+  }
+}

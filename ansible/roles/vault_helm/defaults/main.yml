@@ -1,0 +1,8 @@
+---
+vault_namespace: vault
+vault_helm_repo_name: hashicorp
+vault_helm_repo_url: https://helm.releases.hashicorp.com
+vault_helm_release_name: vault
+vault_helm_chart: hashicorp/vault
+vault_helm_timeout: 5m
+vault_node_port: 30200

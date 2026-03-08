@@ -1,0 +1,14 @@
+server:
+  standalone:
+    enabled: true
+  dataStorage:
+    enabled: true
+  service:
+    type: NodePort
+    nodePort: 30200
+
+ui:
+  enabled: true
+
+injector:
+  enabled: false

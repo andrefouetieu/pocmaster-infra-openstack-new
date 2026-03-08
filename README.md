@@ -51,7 +51,9 @@ cd ansible && ansible-galaxy collection install -r requirements.yml
     ├── INFRA.md
     ├── ARCHITECTURE.md
     ├── VPN-DEPLOY.md
-    └── K8S-CLUSTER.md
+    ├── K8S-CLUSTER.md
+    ├── VAULT.md
+    └── ENABLE_K8S_VAULT.md
 ```
 
 ---
@@ -89,6 +91,8 @@ Dans `terraform.tfvars` : `deploy_vpn = true`, `vpn_user_list = ["user1"]`. Open
 - **Architecture** — VPN sur master, K8s : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **VPN** — déploiement, accès : [docs/VPN-DEPLOY.md](docs/VPN-DEPLOY.md)
 - **Cluster K8s** — kubectl, Helm : [docs/K8S-CLUSTER.md](docs/K8S-CLUSTER.md)
+- **Vault** — user/pass, SSO, Active Directory : [docs/VAULT.md](docs/VAULT.md)
+- **Kubernetes Auth (Vault)** — authentifier des pods infra_app dans Vault (infra_platform) : [docs/ENABLE_K8S_VAULT.md](docs/ENABLE_K8S_VAULT.md)
 - **Tools** — charts Helm : [tools/README.md](tools/README.md)
 
 ---

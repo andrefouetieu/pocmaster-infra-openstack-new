@@ -1,0 +1,21 @@
+{
+  "floating_ip": "84.234.27.133",
+  "kubernetes": {
+    "namespace": "default",
+    "sa_token_reviewer": "vault-auth",
+    "sa_token_reviewer_binding": "vault-auth-binding",
+    "sa_app": "app-sa,saga-app",
+    "jwt_duration": "87600h"
+  },
+  "k3s": {
+    "service_file": "/etc/systemd/system/k3s.service",
+    "ca_cert_path": "/var/lib/rancher/k3s/server/tls/server-ca.crt",
+    "apiserver_cert_path": "/var/lib/rancher/k3s/server/tls/serving-kube-apiserver.crt",
+    "apiserver_key_path": "/var/lib/rancher/k3s/server/tls/serving-kube-apiserver.key",
+    "restart_wait_seconds": 25
+  },
+  "output": {
+    "ca_cert_local_path": "/tmp/app-cluster-ca.crt",
+    "vault_config_output": "/tmp/vault-config-values.json"
+  }
+}

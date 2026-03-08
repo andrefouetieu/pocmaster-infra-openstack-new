@@ -1,0 +1,48 @@
+---
+- name: Add HashiCorp Helm repo
+  ansible.builtin.command: helm repo add {{ vault_helm_repo_name }} {{ vault_helm_repo_url }}
+  register: _helm_repo
+  changed_when: "'has been added' in _helm_repo.stdout"
+  failed_when: _helm_repo.rc != 0 and 'already exists' not in _helm_repo.stderr
+  environment:
+    KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+
+- name: Update Helm repos
+  ansible.builtin.command: helm repo update
+  changed_when: false
+  environment:
+    KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+
+- name: Create vault namespace
+  ansible.builtin.shell: |
+    kubectl create namespace {{ vault_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+  changed_when: false
+  environment:
+    KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+
+- name: Copy Vault Helm values
+  ansible.builtin.copy:
+    src: values.yaml
+    dest: /tmp/vault-values.yaml
+    mode: "0644"
+
+- name: Install/upgrade Vault via Helm
+  ansible.builtin.command: >
+    helm upgrade --install {{ vault_helm_release_name }}
+    {{ vault_helm_chart }}
+    -n {{ vault_namespace }}
+    -f /tmp/vault-values.yaml
+    --wait --timeout {{ vault_helm_timeout }}
+  environment:
+    KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+  register: _vault_helm
+  changed_when: "'has been upgraded' in _vault_helm.stdout or 'has been installed' in _vault_helm.stdout"
+
+- name: Cleanup temp values file
+  ansible.builtin.file:
+    path: /tmp/vault-values.yaml
+    state: absent
+
+- name: Show Vault access info
+  ansible.builtin.debug:
+    msg: "Vault installé. UI/API via NodePort {{ vault_node_port }} sur les nœuds du cluster."
