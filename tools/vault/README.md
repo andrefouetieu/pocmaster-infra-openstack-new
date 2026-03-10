@@ -14,7 +14,12 @@ cd tools/vault
 
 ## Configuration
 
-Le fichier `values.yaml` définit :
+Le contenu de `tools/vault/` est la **source unique** utilisée par :
+
+- `./install.sh` (installation manuelle)
+- Le rôle Ansible `vault_helm` (quand `install_vault=true` dans Terraform) — copie ce répertoire sur le master et exécute `install.sh`
+
+Il définit :
 
 - **server.standalone.enabled** : mode standalone
 - **server.service.type** : NodePort 30200 pour accès externe

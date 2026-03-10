@@ -1,18 +1,34 @@
 ---
-# Configure kubectl pour l'utilisateur SSH : équivalent de
-#   mkdir -p ~/.kube
-#   sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-#   sudo chown $(id -u):$(id -g) ~/.kube/config
-#   chmod 600 ~/.kube/config
-#   echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
-#   source ~/.bashrc
+# Configure kubectl de façon permanente pour l'utilisateur SSH ET root (sudo kubectl).
+# S'applique aux deux clusters infra_platform et infra_app via k8s_cluster.yml.
 - name: Configure kubectl for SSH user
   ansible.builtin.shell: |
     mkdir -p {{ ansible_user_dir }}/.kube
     cp {{ kubectl_config_k3s_config_path }} {{ ansible_user_dir }}/.kube/config
-    chown $(id -u {{ ansible_user_id }}):$(id -g {{ ansible_user_id }}) {{ ansible_user_dir }}/.kube/config
+    chown {{ ansible_user }}:{{ ansible_user }} {{ ansible_user_dir }}/.kube/config
     chmod 600 {{ ansible_user_dir }}/.kube/config
     grep -qFx "export KUBECONFIG=~/.kube/config" {{ ansible_user_dir }}/.bashrc 2>/dev/null || echo 'export KUBECONFIG=~/.kube/config' >> {{ ansible_user_dir }}/.bashrc
   args:
     executable: /bin/bash
+  become: true
+
+- name: Configure kubectl for root (sudo kubectl)
+  ansible.builtin.shell: |
+    mkdir -p /root/.kube
+    cp {{ kubectl_config_k3s_config_path }} /root/.kube/config
+    chmod 600 /root/.kube/config
+  become: true
+
+- name: Create system-wide KUBECONFIG profile for persistence
+  ansible.builtin.copy:
+    dest: /etc/profile.d/k8s-kubeconfig.sh
+    mode: "0644"
+    content: |
+      # KUBECONFIG pour K3s — chargé au login (permanent pour tous les utilisateurs)
+      # Priorité : ~/.kube/config (user) > /root/.kube/config > k3s par défaut
+      if [ -n "$HOME" ] && [ -f "$HOME/.kube/config" ]; then
+        export KUBECONFIG="$HOME/.kube/config"
+      elif [ -f {{ kubectl_config_k3s_config_path }} ]; then
+        export KUBECONFIG={{ kubectl_config_k3s_config_path }}
+      fi
   become: true

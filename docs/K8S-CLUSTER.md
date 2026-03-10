@@ -45,14 +45,13 @@ export KUBECONFIG=~/.kube/config-vault
 - **kubectl** : `kubectl get nodes`, `kubectl get pods -A`
 - **Helm** : installer depuis `tools/` (ex. `tools/vault/install.sh`)
 
-### Configuration kubectl sur le master (optionnel)
+### Configuration kubectl sur le master
 
-Pour utiliser `kubectl` en SSH sur le master sans `sudo` :
+Le rôle `kubectl_config` est exécuté automatiquement par `k8s_cluster.yml` lors du déploiement. Il configure :
 
-```bash
-cd ansible
-ansible-playbook -i <inventaire> k8s_kubectl_config.yml -u <vm_ssh_user> --private-key ~/.ssh/id_rsa
-```
+- **Utilisateur SSH** : `~/.kube/config` + `KUBECONFIG` dans `.bashrc`
+- **root** : `/root/.kube/config` (pour `sudo kubectl`)
+- **Persistance** : `/etc/profile.d/k8s-kubeconfig.sh` (chargé au login pour tous les utilisateurs)
 
 ### Installer Helm
 

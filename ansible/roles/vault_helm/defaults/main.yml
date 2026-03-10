@@ -1,4 +1,7 @@
 ---
+# Répertoire source tools/vault/ et destination sur le remote
+vault_install_src: "{{ playbook_dir }}/../tools/vault/"
+vault_install_dest: /tmp/vault-install
 vault_namespace: vault
 vault_helm_repo_name: hashicorp
 vault_helm_repo_url: https://helm.releases.hashicorp.com
