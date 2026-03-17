@@ -1,0 +1,162 @@
+---
+description: Patron pour ajouter une nouvelle infra (stack Terraform) dans le projet, comme infra_app ou infra_platform
+globs: terraform/**
+alwaysApply: false
+---
+
+# Patron d'ajout d'une nouvelle infra (stack Terraform)
+
+Les stacks `infra_platform` et `infra_app` sont la référence. Chaque stack est un **simple wrapper** autour des modules `cluster` (et/ou `vps`). Il ne redéclare pas de ressources OpenStack directement.
+
+---
+
+## 1. Hiérarchie des modules
+
+```
+modules/network   ← réseau + subnet + interface routeur
+modules/instance  ← VM(s) + cloud-init + IP flottante + volumes
+      ↑                   ↑
+modules/cluster   ← cluster K8s complet (network + SGs + keypair + master + workers + Ansible)
+modules/vps       ← VPS OpenVPN standalone (network + instance + Ansible)
+      ↑
+infra_platform / infra_app / <nouvelle_infra>  ← stack = 1 appel de module
+```
+
+**Règle :** un stack n'instancie que les modules de niveau intermédiaire (`cluster`, `vps`). Il ne touche pas directement `network` ou `instance`.
+
+---
+
+## 2. Fichiers d'un stack (structure minimale)
+
+```
+terraform/<infra_name>/
+  00_providers.tf          # provider openstack ~> 3.4.0 + null ~> 3.0 ; pas de backend local
+  variables.tf             # auth OpenStack + variables métier
+  main.tf                  # 1 ou 2 appels de module (cluster, vps)
+  outputs.tf               # expose les IPs / noms utiles
+  terraform.tfvars.example # exemple (jamais de secrets)
+```
+
+---
+
+## 3. `00_providers.tf` — copier/adapter depuis infra_platform
+
+```hcl
+terraform {
+  required_version = ">= 0.14.0"
+  required_providers {
+    openstack = { source = "terraform-provider-openstack/openstack", version = "~> 3.4.0" }
+    null      = { source = "hashicorp/null", version = "~> 3.0" }
+  }
+}
+
+provider "openstack" {
+  cloud               = var.openstack_cloud != "" ? var.openstack_cloud : null
+  auth_url            = var.openstack_cloud == "" ? var.openstack_auth_url : null
+  user_name           = var.openstack_cloud == "" ? var.openstack_username : null
+  password            = var.openstack_cloud == "" ? var.openstack_password : null
+  tenant_name         = var.openstack_cloud == "" ? var.openstack_project_name : null
+  region              = var.openstack_cloud == "" ? var.openstack_region_name : null
+  user_domain_name    = var.openstack_cloud == "" ? var.openstack_user_domain_name : null
+  project_domain_name = var.openstack_cloud == "" ? var.openstack_project_domain_name : null
+}
+```
+
+---
+
+## 4. `variables.tf` — variables obligatoires
+
+```hcl
+# Auth OpenStack (identiques dans tous les stacks)
+variable "openstack_cloud"              { type = string; default = "" }
+variable "openstack_auth_url"           { type = string; default = "" }
+variable "openstack_username"           { type = string; default = "" }
+variable "openstack_password"           { type = string; default = ""; sensitive = true }
+variable "openstack_project_name"       { type = string; default = "" }
+variable "openstack_region_name"        { type = string; default = "" }
+variable "openstack_user_domain_name"   { type = string; default = "default" }
+variable "openstack_project_domain_name"{ type = string; default = "default" }
+
+# Réseau externe (Infomaniak)
+variable "network_external_id"   { type = string; default = "0f9c3806-bd21-490f-918d-4a6d1c648489" }
+variable "network_external_name" { type = string; default = "ext-floating1" }
+
+# Nom de l'infra (préfixe des ressources)
+variable "infra_name" { type = string; default = "<infra_name>" }
+
+# Subnet : choisir un CIDR différent des autres stacks pour éviter les chevauchements
+# infra_platform: 10.0.10.0/24 | infra_app: 10.0.20.0/24 → utiliser 10.0.X0.0/24 suivant
+variable "cluster_subnet_cidr" { type = string; default = "10.0.30.0/24" }
+
+# Variables cluster (voir modules/cluster/variables.tf pour la liste complète)
+variable "k8s_worker_count"              { type = number; default = 2 }
+variable "k8s_master_floating_ip"        { type = bool;   default = false }
+variable "ssh_public_key_default_user"   { type = string }
+variable "vm_ssh_user"                   { type = string; default = "ubuntu" }
+variable "instance_image_id"             { type = string }
+variable "instance_flavor_name"          { type = string; default = "a1-ram2-disk20-perf1" }
+variable "run_k8s_ansible_after_apply"   { type = bool;   default = true }
+
+# Outils (uniquement dans infra_platform — le stack dédié aux outils plateforme)
+# infra_app ne déclare PAS de variables install_* : les outils ne sont pas installés sur le cluster app.
+# variable "install_vault"   { type = bool; default = false }
+# variable "install_mongodb" { type = bool; default = false }
+# variable "install_argocd"  { type = bool; default = false }
+```
+
+---
+
+## 5. `main.tf` — appel du module cluster
+
+```hcl
+module "cluster" {
+  source = "../modules/cluster"
+  count  = 1
+
+  name_prefix              = var.infra_name
+  cluster_network_name     = "${var.infra_name}-network"
+  network_subnet_cidr      = var.cluster_subnet_cidr
+  network_external_id      = var.network_external_id
+  network_external_name    = var.network_external_name
+
+  ssh_public_key_default_user = var.ssh_public_key_default_user
+  vm_ssh_user                 = var.vm_ssh_user
+  instance_image_id           = var.instance_image_id
+  instance_flavor_name        = var.instance_flavor_name
+
+  k8s_worker_count         = var.k8s_worker_count
+  k8s_master_floating_ip   = var.k8s_master_floating_ip
+
+  run_k8s_ansible_after_apply = var.run_k8s_ansible_after_apply
+  install_vault               = var.install_vault
+  install_mongodb             = var.install_mongodb
+  install_argocd              = var.install_argocd
+
+  ansible_base_path = "${path.module}/../../ansible"
+}
+```
+
+Pour ajouter aussi un **VPN standalone** : ajouter un bloc `module "vps"` pointant sur `../modules/vps`.
+
+---
+
+## 6. `outputs.tf` — sorties standards
+
+```hcl
+output "k8s_master_floating_ip"  { value = try(module.cluster[0].k8s_master_floating_ip, null) }
+output "k8s_master_internal_ip"  { value = try(module.cluster[0].k8s_master_internal_ip, null) }
+output "k8s_master_name"         { value = try(module.cluster[0].k8s_master_name, null) }
+output "k8s_worker_internal_ips" { value = try(module.cluster[0].k8s_worker_internal_ips, []) }
+output "vm_ssh_user"             { value = var.vm_ssh_user }
+```
+
+---
+
+## 7. Checklist avant de créer un nouveau stack
+
+- [ ] Le CIDR du subnet est **unique** (aucun autre stack n'utilise le même `10.0.X.0/24`).
+- [ ] `infra_name` est unique (préfixe des ressources OpenStack).
+- [ ] `terraform.tfvars.example` fourni (sans secrets) ; `terraform.tfvars` dans `.gitignore`.
+- [ ] `vm_ssh_user` = même valeur que dans le userdata (cloud-init) et dans Ansible (`-u`).
+- [ ] Si le master a une IP flottante et les workers non : le `cluster` module gère déjà le bastion ProxyCommand.
+- [ ] Mettre à jour `tools/README.md` si des outils sont activés (`install_vault`, `install_mongodb`).

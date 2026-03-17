@@ -105,7 +105,7 @@ resource "openstack_networking_secgroup_rule_v2" "cluster_master_openvpn_tcp" {
   security_group_id = openstack_networking_secgroup_v2.cluster_master_public[0].id
 }
 resource "openstack_networking_secgroup_rule_v2" "cluster_master_vault" {
-  count             = (var.k8s_master_floating_ip && var.install_vault) ? 1 : 0
+  count             = var.k8s_master_floating_ip ? 1 : 0
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
@@ -115,12 +115,22 @@ resource "openstack_networking_secgroup_rule_v2" "cluster_master_vault" {
   security_group_id = openstack_networking_secgroup_v2.cluster_master_public[0].id
 }
 resource "openstack_networking_secgroup_rule_v2" "cluster_master_mongodb" {
-  count             = (var.k8s_master_floating_ip && var.install_mongodb) ? 1 : 0
+  count             = var.k8s_master_floating_ip ? 1 : 0
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
   port_range_min    = 30017
   port_range_max    = 30017
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.cluster_master_public[0].id
+}
+resource "openstack_networking_secgroup_rule_v2" "cluster_master_argocd" {
+  count             = var.k8s_master_floating_ip ? 1 : 0
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 30080
+  port_range_max    = 30080
   remote_ip_prefix  = "0.0.0.0/0"
   security_group_id = openstack_networking_secgroup_v2.cluster_master_public[0].id
 }
@@ -252,6 +262,30 @@ resource "null_resource" "mongodb_ansible" {
       ANSIBLE_CONFIG=${var.ansible_base_path}/ansible.cfg ansible-playbook \
         -u ${var.vm_ssh_user} -i $INI --private-key ~/.ssh/id_rsa \
         ${var.ansible_base_path}/mongodb_install.yml
+      rm -f $INI
+    EOT
+  }
+  depends_on = [null_resource.k8s_ansible]
+}
+
+resource "null_resource" "argocd_ansible" {
+  count = var.install_argocd ? 1 : 0
+  triggers = { always_run = timestamp() }
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      sleep 15
+      INI=/tmp/argocd_install.ini
+      echo "[k8s_master]" > $INI
+      echo "${local.k8s_master_name} ansible_host=${local.k8s_master_ip}" >> $INI
+      %{if var.k8s_master_floating_ip~}
+      echo "" >> $INI
+      echo "[k8s_master:vars]" >> $INI
+      echo "ansible_user=${var.vm_ssh_user}" >> $INI
+      %{endif~}
+      ANSIBLE_CONFIG=${var.ansible_base_path}/ansible.cfg ansible-playbook \
+        -u ${var.vm_ssh_user} -i $INI --private-key ~/.ssh/id_rsa \
+        ${var.ansible_base_path}/argocd_install.yml
       rm -f $INI
     EOT
   }

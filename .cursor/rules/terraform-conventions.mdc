@@ -1,0 +1,37 @@
+---
+description: Conventions Terraform pour l'infra OpenStack Infomaniak (providers, variables, modules, stacks)
+globs: terraform/**/*.tf,terraform/**/*.tfvars.example
+alwaysApply: false
+---
+
+# Terraform — Conventions projet
+
+## Structure des stacks
+
+- Chaque stack (01_vpn, 02_cluster, ...) est **indépendant** : réseau, keypair, security groups créés dans le stack.
+- Fichiers numérotés : `00_providers.tf`, `00_variables.tf`, `01_keypair.tf`, `02_network.tf`, `03_security_groups.tf`, `04_instance_*.tf`, etc.
+- Modules réutilisables dans `terraform/modules/` (instance, network).
+
+## Auth OpenStack
+
+- Variable `openstack_cloud` (nom du cloud dans `clouds.yaml`) **ou** variables `openstack_auth_url`, `openstack_username`, etc.
+- Le provider utilise une condition ternaire : `cloud = var.openstack_cloud != "" ? var.openstack_cloud : null`.
+- Ne jamais hardcoder d'identifiants dans les `.tf`.
+
+## Variables & secrets
+
+- Les secrets (auth, clé SSH) vont dans `terraform.tfvars` (gitignored).
+- Toujours fournir un `terraform.tfvars.example` avec des valeurs d'exemple/commentées.
+- Les variables sensibles ont `sensitive = true`.
+
+## Modules instance
+
+- Le module `instance` accepte `instance_ssh_user` (user Linux créé par cloud-init).
+- IP flottante via Neutron (`port_id`) pour compatibilité provider OpenStack 3.x.
+
+## Provisioning Ansible
+
+- Les `null_resource` avec `local-exec` génèrent un inventaire INI temporaire et lancent `ansible-playbook`.
+- Utiliser `var.vm_ssh_user` pour `-u` (pas de user en dur).
+- Si le master a une IP flottante et les workers non, configurer le **bastion** (ProxyCommand) dans l'inventaire.
+- `sleep` sans suffixe (`sleep 45`, pas `sleep 45s`) pour compatibilité macOS.

@@ -23,5 +23,6 @@ module "cluster" {
   vpn_user_list               = var.vpn_user_list
   install_vault               = var.install_vault
   install_mongodb             = var.install_mongodb
+  install_argocd              = var.install_argocd
   ansible_base_path           = "${path.module}/../../ansible"
 }

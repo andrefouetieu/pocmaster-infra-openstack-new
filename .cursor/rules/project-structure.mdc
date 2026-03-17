@@ -1,0 +1,34 @@
+---
+description: Structure générale du projet infra-openstack (dossiers, docs, secrets, git)
+globs: 
+alwaysApply: true
+---
+
+# Projet infra-openstack — Structure & conventions
+
+## Arborescence
+
+```
+terraform/          # Stacks Terraform (01_vpn, 02_cluster, ...)
+  modules/          # Modules réutilisables (instance, network)
+ansible/            # Playbooks et rôles (K3s, OpenVPN)
+tools/              # Charts Helm pour les outils (Vault, MongoDB, ArgoCD, ...)
+gitops/             # Manifests GitOps (apps Argo CD)
+docs/               # Documentation technique (un .md par sujet)
+```
+
+## Documentation
+
+- Un fichier `.md` par sujet dans `docs/` (ex. `OPENSTACK-AUTH.md`, `ARCHITECTURE-CLUSTER.md`).
+- Chaque outil dans `tools/` a son propre `README.md`.
+
+## Secrets & .gitignore
+
+- Ne jamais committer : `terraform.tfvars`, `backend.s3.hcl`, `.env`, clés SSH, `clouds.yaml`.
+- Fournir un `.example` pour chaque fichier sensible.
+
+## Cloud & région
+
+- Provider : OpenStack Infomaniak (provider terraform-provider-openstack ~> 3.x).
+- Régions : `dc3-a` ou `dc4-a`.
+- Auth : via `clouds.yaml` (`openstack_cloud` dans tfvars) ou variables explicites.

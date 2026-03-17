@@ -1,0 +1,32 @@
+---
+- name: Copy tools/argocd to remote
+  ansible.builtin.copy:
+    src: "{{ argocd_install_src }}"
+    dest: "{{ argocd_install_dest }}"
+    mode: "0644"
+
+- name: Make install.sh executable
+  ansible.builtin.file:
+    path: "{{ argocd_install_dest }}/install.sh"
+    mode: "0755"
+
+- name: Run Argo CD install script
+  ansible.builtin.shell: ./install.sh
+  args:
+    chdir: "{{ argocd_install_dest }}"
+  environment:
+    KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+  register: _argocd_install
+  changed_when: true
+
+- name: Cleanup temp install directory
+  ansible.builtin.file:
+    path: "{{ argocd_install_dest }}"
+    state: absent
+
+- name: Show Argo CD access info
+  ansible.builtin.debug:
+    msg: >-
+      Argo CD installé dans le namespace {{ argocd_namespace }}.
+      Accès UI : kubectl port-forward svc/{{ argocd_helm_release_name }}-server
+      -n {{ argocd_namespace }} {{ argocd_port_forward }}:80

@@ -1,0 +1,67 @@
+# Values pour le chart Helm Argo CD (sous-chart argo-cd).
+# Cluster de démo K3s : 1 réplica par composant, ressources modestes.
+
+global:
+  domain: ""
+
+server:
+  replicas: 1
+  service:
+    type: NodePort
+    nodePortHttp: 30080
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 300m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+applicationSet:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+configs:
+  params:
+    server.insecure: true

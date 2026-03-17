@@ -25,8 +25,10 @@ export KUBECONFIG=~/.kube/config-platform
 |-------|---------|---------------|--------------|
 | HashiCorp Vault | [vault/](vault/) | 30200 | `./install.sh` |
 | MongoDB | [mongodb/](mongodb/) | 30017 | `./install.sh` |
+| Argo CD | [argocd/](argocd/) | 30080 | `./install.sh` |
 
 ## Ordre d'installation
 
 1. **Vault** en premier si d'autres services en dépendent (ex. secrets MongoDB dans Vault).
 2. **MongoDB** ensuite.
+3. **Argo CD** quand le cluster est prêt (GitOps pour déployer les applications).

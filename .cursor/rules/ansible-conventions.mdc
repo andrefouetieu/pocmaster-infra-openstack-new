@@ -1,0 +1,27 @@
+---
+description: Conventions Ansible pour les rôles et playbooks K3s / OpenVPN
+globs: ansible/**/*.yml,ansible/**/*.yaml
+alwaysApply: false
+---
+
+# Ansible — Conventions projet
+
+## Structure
+
+- Rôles dans `ansible/roles/` : `k3s_server`, `k3s_agent`, `openvpn_server`, `openvpn_client`.
+- Playbooks à la racine de `ansible/` : `k8s_cluster.yml`, `openvpn_server.yml`, `openvpn_client.yml`.
+- Config dans `ansible/ansible.cfg`.
+
+## K3s cluster
+
+- Le playbook `k8s_cluster.yml` a deux plays : master puis workers.
+- Les workers joignent le master via son **IP interne** (pas l'IP flottante) :
+  `k3s_master_url: "https://{{ hostvars[groups['k8s_master'][0]]['ansible_default_ipv4']['address'] }}:6443"`
+- Le rôle `k3s_agent` écrit toujours `/etc/systemd/system/k3s-agent.service.env` avec `K3S_URL` et `K3S_TOKEN`, puis redémarre le service (idempotent).
+
+## Bonnes pratiques
+
+- Utiliser `ansible.builtin.*` (FQCN) pour tous les modules.
+- Les tâches shell utilisent `creates:` ou un guard pour l'idempotence.
+- En cas d'échec service, capturer `journalctl` et le remonter dans le message `fail`.
+- Connexion SSH : user et clé fournis par Terraform (variables, pas en dur).

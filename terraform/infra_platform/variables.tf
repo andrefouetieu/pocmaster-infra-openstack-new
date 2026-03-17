@@ -67,6 +67,11 @@ variable "install_mongodb" {
   default     = false
   description = "Installer MongoDB via Helm après création du cluster"
 }
+variable "install_argocd" {
+  type        = bool
+  default     = false
+  description = "Installer Argo CD via Helm après création du cluster"
+}
 
 variable "cluster_subnet_cidr" {
   type        = string

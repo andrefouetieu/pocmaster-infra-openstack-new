@@ -1,0 +1,34 @@
+---
+description: Conventions Helm pour les outils déployés sur le cluster K3s (tools/)
+globs: tools/**
+alwaysApply: false
+---
+
+# Helm tools — Conventions projet
+
+## Structure par outil
+
+Chaque outil dans `tools/<nom>/` contient :
+- `Chart.yaml` : chart wrapper minimal avec la dépendance officielle.
+- `values.yaml` : valeurs par défaut (ressources, réplicas, service type).
+- `values-demo.yaml` (optionnel) : overrides pour le cluster de démo.
+- `install.sh` : script d'installation (`helm upgrade --install`).
+- `README.md` : doc rapide (prérequis, install, accès).
+
+## Ressources
+
+- Toujours définir `requests` et `limits` (CPU/RAM) adaptés au cluster (petites VM).
+- Pour un cluster de démo K3s (1 master + 2 workers, 2 vCPU / 2-4 Go RAM) :
+  - Démarrer bas (ex. 200m CPU, 256-512Mi RAM) et ajuster.
+  - 1 réplica par composant sauf besoin explicite de HA.
+
+## Service & accès
+
+- Par défaut `ClusterIP` + `kubectl port-forward` pour la démo.
+- `NodePort` si accès direct nécessaire (ex. MongoDB 30017).
+- Documenter la commande d'accès dans le README de l'outil.
+
+## Namespace
+
+- Chaque outil dans son propre namespace (ex. `argocd`, `mongodb`, `vault`).
+- Le namespace est créé par `install.sh` (`--create-namespace`) ou par un manifest.

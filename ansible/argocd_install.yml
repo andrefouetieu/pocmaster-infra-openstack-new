@@ -1,0 +1,6 @@
+---
+- name: Install Argo CD via Helm on K3s master
+  hosts: k8s_master
+  become: true
+  roles:
+    - argocd_helm

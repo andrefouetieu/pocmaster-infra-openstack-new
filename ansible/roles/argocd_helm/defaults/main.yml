@@ -1,0 +1,10 @@
+---
+argocd_install_src: "{{ playbook_dir }}/../tools/argocd/"
+argocd_install_dest: /tmp/argocd-install
+argocd_namespace: argocd
+argocd_helm_repo_name: argo
+argocd_helm_repo_url: https://argoproj.github.io/argo-helm
+argocd_helm_release_name: argocd
+argocd_helm_chart: argo/argo-cd
+argocd_helm_timeout: 10m
+argocd_port_forward: 8080

@@ -66,6 +66,11 @@ variable "install_mongodb" {
   default     = false
   description = "Installer MongoDB via Helm (Ansible) après K3s"
 }
+variable "install_argocd" {
+  type        = bool
+  default     = false
+  description = "Installer Argo CD via Helm (Ansible) après K3s"
+}
 variable "ansible_base_path" {
   type = string
 }

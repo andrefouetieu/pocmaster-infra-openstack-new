@@ -1,0 +1,203 @@
+---
+description: Patron complet d'installation d'un outil dans le projet (tools/, ansible/, Terraform, binaires)
+globs: tools/**,ansible/roles/**,ansible/playbooks/**
+alwaysApply: false
+---
+
+# Patron d'installation d'un outil (ex. Vault, MongoDB, ArgoCD)
+
+Chaque outil suit **3 couches** qui collaborent. La règle de référence est `tools/<outil>/install.sh` = **source unique** : Ansible et Terraform ne font que l'appeler.
+
+---
+
+## 1. Couche Helm — `tools/<outil>/`
+
+```
+tools/<outil>/
+  Chart.yaml       # chart wrapper (dépendance officielle)
+  values.yaml      # valeurs par défaut (resources, replicas, service)
+  values-demo.yaml # overrides pour le cluster de démo (optionnel)
+  install.sh       # script d'install (source unique réutilisée par Ansible)
+  README.md        # doc : prérequis, install, accès
+```
+
+**`install.sh` — structure type :**
+```bash
+#!/usr/bin/env bash
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Guard : kubectl configuré ?
+if ! kubectl cluster-info &>/dev/null; then
+  echo "Erreur: kubectl ne pointe pas vers un cluster valide."; exit 1
+fi
+
+helm repo add <repo> <url> 2>/dev/null || true
+helm repo update
+kubectl create namespace <ns> --dry-run=client -o yaml | kubectl apply -f -
+helm upgrade --install <release> <chart> -n <ns> -f values.yaml --wait --timeout 10m
+echo "Outil installé. Accès via NodePort <port> sur un nœud du cluster."
+```
+
+---
+
+## 2. Couche Ansible — `ansible/roles/<outil>_helm/`
+
+```
+ansible/roles/<outil>_helm/
+  defaults/main.yml   # variables (src, dest, namespace, port, ...)
+  tasks/main.yml      # copy tools/, chmod install.sh, run install.sh, cleanup
+```
+
+**Pattern de tâches (tasks/main.yml) :**
+```yaml
+- name: Copy tools/<outil> to remote
+  ansible.builtin.copy:
+    src: "{{ <outil>_install_src }}"   # ex. playbook_dir + /../tools/<outil>/
+    dest: "{{ <outil>_install_dest }}" # ex. /tmp/<outil>-install
+    mode: "0644"
+
+- name: Make install.sh executable
+  ansible.builtin.file:
+    path: "{{ <outil>_install_dest }}/install.sh"
+    mode: "0755"
+
+- name: Run install script
+  ansible.builtin.shell: ./install.sh
+  args:
+    chdir: "{{ <outil>_install_dest }}"
+  environment:
+    KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+  changed_when: true
+
+- name: Cleanup temp directory
+  ansible.builtin.file:
+    path: "{{ <outil>_install_dest }}"
+    state: absent
+
+- name: Show access info
+  ansible.builtin.debug:
+    msg: "{{ <outil> }} installé sur NodePort {{ <outil>_node_port }}."
+```
+
+**defaults/main.yml — variables type :**
+```yaml
+<outil>_install_src: "{{ playbook_dir }}/../tools/<outil>/"
+<outil>_install_dest: /tmp/<outil>-install
+<outil>_namespace: <outil>
+<outil>_node_port: 3XXXX
+```
+
+---
+
+## 3. Couche binaires — `ansible/roles/helm/` (et similaires)
+
+Pour les **binaires CLI** (helm, kubectl, etc.) :
+
+```yaml
+# Pattern : stat → skip si déjà installé, sinon : tempfile → get_url → unarchive → copy → cleanup → verify
+- name: Check if <bin> is already installed
+  ansible.builtin.stat:
+    path: "{{ <bin>_install_path }}/<bin>"
+  register: _<bin>_installed
+
+- name: Download & install <bin>
+  when: not _<bin>_installed.stat.exists
+  block:
+    - ansible.builtin.tempfile: { state: directory }
+      register: _tmp
+    - ansible.builtin.get_url:
+        url: "https://.../<bin>-{{ <bin>_version }}-{{ <bin>_arch }}.tar.gz"
+        dest: "{{ _tmp.path }}/<bin>.tar.gz"
+    - ansible.builtin.unarchive:
+        src: "{{ _tmp.path }}/<bin>.tar.gz"
+        dest: "{{ _tmp.path }}"
+        remote_src: true
+    - ansible.builtin.copy:
+        src: "{{ _tmp.path }}/.../<bin>"
+        dest: "{{ <bin>_install_path }}/<bin>"
+        mode: "0755"
+        remote_src: true
+    - ansible.builtin.file: { path: "{{ _tmp.path }}", state: absent }
+
+- name: Verify <bin>
+  ansible.builtin.command: <bin> version
+  changed_when: false
+```
+
+Defaults obligatoires : `<bin>_version`, `<bin>_install_path`, `<bin>_arch`.
+
+---
+
+## 4. Couche Terraform (obligatoire)
+
+Chaque outil **doit** être intégré dans Terraform avec un booléen `install_<outil>` (défaut `false`).
+Quand `install_<outil> = true`, Terraform lance Ansible qui exécute `install.sh` après la création du cluster.
+
+### a) Module `modules/cluster/variables.tf` — ajouter la variable
+
+```hcl
+variable "install_<outil>" {
+  type        = bool
+  default     = false
+  description = "Installer <outil> via Helm (Ansible) après K3s"
+}
+```
+
+### b) Module `modules/cluster/main.tf` — ajouter le `null_resource`
+
+```hcl
+resource "null_resource" "<outil>_ansible" {
+  count    = var.install_<outil> ? 1 : 0
+  triggers = { always_run = timestamp() }
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      sleep 15
+      INI=/tmp/<outil>_install.ini
+      echo "[k8s_master]" > $INI
+      echo "${local.k8s_master_name} ansible_host=${local.k8s_master_ip}" >> $INI
+      %{if var.k8s_master_floating_ip~}
+      echo "" >> $INI
+      echo "[k8s_master:vars]" >> $INI
+      echo "ansible_user=${var.vm_ssh_user}" >> $INI
+      %{endif~}
+      ANSIBLE_CONFIG=${var.ansible_base_path}/ansible.cfg ansible-playbook \
+        -u ${var.vm_ssh_user} -i $INI --private-key ~/.ssh/id_rsa \
+        ${var.ansible_base_path}/<outil>_install.yml
+      rm -f $INI
+    EOT
+  }
+  depends_on = [null_resource.k8s_ansible]
+}
+```
+
+### c) Stack `infra_platform` uniquement — propager la variable
+
+Les outils sont installés **uniquement via `infra_platform`** (cluster plateforme dédié aux outils). Le stack `infra_app` ne gère pas l'installation d'outils.
+
+- `terraform/infra_platform/variables.tf` : ajouter `variable "install_<outil>" { type = bool; default = false }`.
+- `terraform/infra_platform/main.tf` : passer `install_<outil> = var.install_<outil>` au module cluster.
+- `terraform/infra_platform/terraform.tfvars.example` : ajouter `install_<outil> = false`.
+
+### d) Playbook Ansible — `ansible/<outil>_install.yml`
+
+```yaml
+---
+- name: Install <outil> via Helm on K3s master
+  hosts: k8s_master
+  become: true
+  roles:
+    - <outil>_helm
+```
+
+---
+
+## 5. Documentation — `docs/<OUTIL>.md`
+
+- Prérequis (cluster, kubectl, helm).
+- Commande d'installation (`cd tools/<outil> && ./install.sh`).
+- Accès : URL, NodePort, port-forward.
+- Configuration : fichiers à modifier (`values.yaml`), secrets à définir.
+- Référence croisée avec le README de l'outil.
