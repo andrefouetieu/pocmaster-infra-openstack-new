@@ -62,6 +62,11 @@ variable "install_vault" {
   default     = false
   description = "Installer HashiCorp Vault via Helm après création du cluster"
 }
+variable "install_mongodb" {
+  type        = bool
+  default     = false
+  description = "Installer MongoDB via Helm après création du cluster"
+}
 
 variable "cluster_subnet_cidr" {
   type        = string
@@ -86,6 +91,7 @@ variable "instance_image_id" {
 variable "instance_flavor_name" {
   type    = string
   default = "a1-ram2-disk20-perf1"
+  # Pour replica set MongoDB, utiliser : "a2-ram4-disk50-perf1"
 }
 
 variable "vpn_user_list" {

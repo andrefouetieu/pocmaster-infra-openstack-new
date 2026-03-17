@@ -1,0 +1,6 @@
+---
+# Répertoire source tools/mongodb/ et destination sur le remote
+mongodb_install_src: "{{ playbook_dir }}/../tools/mongodb/"
+mongodb_install_dest: /tmp/mongodb-install
+mongodb_namespace: mongodb
+mongodb_node_port: 30017

@@ -19,3 +19,4 @@ k8s_worker_count              = 1
 k8s_master_floating_ip        = true
 run_k8s_ansible_after_apply   = true
 install_vault                 = false   # true : installer Vault via Helm après apply
+install_mongodb               = false   # true : installer MongoDB via Helm après apply (renseigner auth.rootPassword dans tools/mongodb/values.yaml)

@@ -61,6 +61,11 @@ variable "install_vault" {
   default     = false
   description = "Installer HashiCorp Vault via Helm (Ansible) après K3s"
 }
+variable "install_mongodb" {
+  type        = bool
+  default     = false
+  description = "Installer MongoDB via Helm (Ansible) après K3s"
+}
 variable "ansible_base_path" {
   type = string
 }

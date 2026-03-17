@@ -1,0 +1,6 @@
+---
+- name: Install MongoDB via Helm on K3s master
+  hosts: k8s_master
+  become: true
+  roles:
+    - mongodb_helm

@@ -1,6 +1,6 @@
 # Tools — Installation manuelle des charts Helm
 
-Les outils (Vault, etc.) sont installés **manuellement** ou via `install_vault=true` (infra_platform) sur un cluster K8s créé par une infras (infra_platform, infra_app). Cette approche sépare l’infrastructure (Terraform) de la couche applicative (tools).
+Les outils (Vault, MongoDB, etc.) sont installés **manuellement** ou via Terraform/Ansible sur un cluster K8s créé par une infra (infra_platform, infra_app). Cette approche sépare l'infrastructure (Terraform) de la couche applicative (tools).
 
 ## Prérequis
 
@@ -10,7 +10,7 @@ Les outils (Vault, etc.) sont installés **manuellement** ou via `install_vault=
 
 ## Récupérer le kubeconfig
 
-Si le cluster a été créé par une infras avec `k8s_master_floating_ip = true` :
+Si le cluster a été créé par une infra avec `k8s_master_floating_ip = true` :
 
 ```bash
 cd terraform/infra_platform   # ou infra_app
@@ -21,10 +21,12 @@ export KUBECONFIG=~/.kube/config-platform
 
 ## Outils disponibles
 
-| Outil | Dossier | Installation |
-|-------|---------|--------------|
-| HashiCorp Vault | [vault/](vault/) | `./install.sh` |
+| Outil | Dossier | Port NodePort | Installation |
+|-------|---------|---------------|--------------|
+| HashiCorp Vault | [vault/](vault/) | 30200 | `./install.sh` |
+| MongoDB | [mongodb/](mongodb/) | 30017 | `./install.sh` |
 
-## Ordre d’installation
+## Ordre d'installation
 
-Installer Vault en premier si d’autres services en dépendent.
+1. **Vault** en premier si d'autres services en dépendent (ex. secrets MongoDB dans Vault).
+2. **MongoDB** ensuite.

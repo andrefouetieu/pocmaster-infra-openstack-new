@@ -1,0 +1,58 @@
+# Values pour le chart Helm Bitnami MongoDB (standalone).
+# Architecture : standalone (1 seul pod) — adapté aux VMs avec peu de ressources (2 GB RAM).
+# Pour un replica set, voir tools/mongodb/.
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/mongodb
+  tag: latest
+  debug: true
+
+architecture: standalone
+
+auth:
+  enabled: true
+  rootUser: admin
+  rootPassword: "mongopAss123!"
+  usernames:
+    - iyadris
+  passwords:
+    - myappPass123!
+  databases:
+    - myappdb
+  # En prod, utiliser existingSecret :
+  # existingSecret: mongodb-root-secret
+
+persistence:
+  enabled: true
+  size: 1Gi
+  # storageClass: ""  # Laisser vide pour la StorageClass par défaut
+
+service:
+  type: NodePort
+  nodePorts:
+    mongodb: 30017
+
+externalAccess:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 6
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6

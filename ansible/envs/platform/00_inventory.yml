@@ -1,0 +1,15 @@
+# Inventaire pour infra_platform (cluster K8s : Vault, MongoDB, etc.).
+# Mettre à jour ansible_host avec : terraform -chdir=../../terraform/infra_platform output -raw k8s_master_floating_ip
+# Mettre à jour ansible_user avec : terraform -chdir=../../terraform/infra_platform output -raw vm_ssh_user
+
+all:
+  children:
+    k8s_master:
+      hosts:
+        platform-k8s-master:
+          ansible_host: 84.234.25.73
+    k8s_worker: {}
+
+  vars:
+    ansible_user: iyadris
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa

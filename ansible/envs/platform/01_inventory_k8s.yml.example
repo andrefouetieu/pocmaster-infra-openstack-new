@@ -1,0 +1,37 @@
+# Exemple d'inventaire complet platform (master + workers).
+# Copier en 01_inventory_k8s.yml et remplacer les IP par les sorties Terraform :
+#
+#   cd terraform/infra_platform
+#   terraform output k8s_master_floating_ip     # master
+#   terraform output k8s_master_name
+#   terraform output vm_ssh_user
+#
+# Pour les workers (accès via proxy jump par le master si floating_ip) :
+#   terraform output -json k8s_worker_ips
+#
+# Génération automatique :
+#   MASTER_IP=$(terraform output -raw k8s_master_floating_ip)
+#   MASTER_NAME=$(terraform output -raw k8s_master_name)
+#   SSH_USER=$(terraform output -raw vm_ssh_user)
+
+all:
+  children:
+    k8s_master:
+      hosts:
+        platform-k8s-master:
+          ansible_host: 84.234.25.73  # remplacer par terraform output k8s_master_floating_ip
+      vars:
+        ansible_user: ubuntu          # remplacer par terraform output vm_ssh_user
+
+    k8s_worker:
+      hosts:
+        platform-k8s-worker1:
+          ansible_host: 10.0.10.X     # IP interne worker 1
+        platform-k8s-worker2:
+          ansible_host: 10.0.10.Y     # IP interne worker 2
+      vars:
+        ansible_user: ubuntu
+        ansible_ssh_common_args: '-o ProxyCommand="ssh -W %h:%p -i ~/.ssh/id_rsa ubuntu@84.234.25.73"'
+
+  vars:
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa

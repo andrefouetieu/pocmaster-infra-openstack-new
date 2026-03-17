@@ -1,0 +1,30 @@
+---
+# Copie tools/mongodb/ sur le master et exécute install.sh (source unique)
+- name: Copy tools/mongodb to remote
+  ansible.builtin.copy:
+    src: "{{ mongodb_install_src }}"
+    dest: "{{ mongodb_install_dest }}"
+    mode: "0644"
+
+- name: Make install.sh executable
+  ansible.builtin.file:
+    path: "{{ mongodb_install_dest }}/install.sh"
+    mode: "0755"
+
+- name: Run MongoDB install script
+  ansible.builtin.shell: ./install.sh
+  args:
+    chdir: "{{ mongodb_install_dest }}"
+  environment:
+    KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+  register: _mongodb_install
+  changed_when: true
+
+- name: Cleanup temp install directory
+  ansible.builtin.file:
+    path: "{{ mongodb_install_dest }}"
+    state: absent
+
+- name: Show MongoDB access info
+  ansible.builtin.debug:
+    msg: "MongoDB installé. Accès via NodePort {{ mongodb_node_port }} sur les nœuds du cluster."
