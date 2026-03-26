@@ -1,0 +1,50 @@
+---
+description: Inventaire platform, playbooks K8s/Argo CD et bootstrap GitOps saga
+globs: "**/*.{yml,yaml,md}"
+alwaysApply: true
+---
+
+# Ansible — repo `infra-openstack/ansible`
+
+## Inventaire `envs/platform`
+
+- Cas **infra_platform** (cluster K3s, Vault, MongoDB, Argo CD) : utiliser **`-i envs/platform/00_inventory.yml`**.
+- Mettre à jour `ansible_host` / `ansible_user` selon les sorties Terraform (voir `envs/platform/README.md`).
+- Les playbooks ciblent en général `hosts: k8s_master` (nœud maître où `kubectl` est utilisable).
+
+## Prérequis supposés
+
+- L’infra (VM, K3s) et **Argo CD** sont déjà installés (`argocd_install.yml` exécuté au préalable).
+- `kubectl` est configuré sur le master (utilisateur SSH et/ou root via `kubectl_config` / `k8s_cluster.yml`).
+
+## `argocd-bootstrap.yml`
+
+- **`become: true`** : `kubectl` s’exécute en **root** (kubeconfig `/root/.kube/config` si configuré ainsi).
+- Le rôle copie les fichiers depuis `saga_gitops_repo_root` vers le nœud puis appelle **`../scripts/argocd-bootstrap.sh`** (racine du dépôt **infra-openstack**, pas sous `ansible/`) — `envsubst` + `kubectl apply` ; la logique lisible est dans le script.
+- Variable **obligatoire** : `saga_gitops_repo_root` — chemin **absolu sur la machine qui lance Ansible** vers le clone du repo saga (où existent `argocd/bootstrap/*`).
+- Autres variables :
+  - `argocd_bootstrap_staging_dir` (défaut `/tmp/argocd-bootstrap`), `argocd_namespace` (défaut `argocd`).
+  - `argocd_git_token` : PAT Git si dépôt privé.
+  - `argocd_bootstrap_apply_repo_secret=false` : dépôt public HTTPS (pas de secret repository).
+
+### Exemple (inventory platform)
+
+```bash
+cd ansible
+ansible-playbook -i envs/platform/00_inventory.yml argocd-bootstrap.yml \
+  -e saga_gitops_repo_root=/chemin/vers/saga-orchestration-case-study \
+  -e argocd_git_token=ghp_xxx
+```
+
+### Documentation détaillée du flux GitOps
+
+- Dépôt saga : `docs/gitops-argocd-impl.md` (phases, Root Application, `serviceCatalog`, secrets multi-dépôts).
+
+## Autres playbooks platform (rappel)
+
+- `vault_install.yml`, `mongodb_install.yml`, `argocd_install.yml` — voir `envs/platform/README.md`.
+
+## Style
+
+- Préférer `ansible.builtin.*` explicite dans les nouvelles tâches.
+- Ne pas committer de tokens ; passer les secrets en `-e` ou via Ansible Vault / CI.

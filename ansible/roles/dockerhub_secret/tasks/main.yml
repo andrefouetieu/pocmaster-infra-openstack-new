@@ -1,0 +1,31 @@
+---
+- name: Exiger dockerhub_username
+  ansible.builtin.assert:
+    that:
+      - dockerhub_username is defined
+      - (dockerhub_username | string | length) > 0
+    fail_msg: "Definir -e dockerhub_username=TON_USER"
+
+- name: Exiger dockerhub_password
+  ansible.builtin.assert:
+    that:
+      - dockerhub_password is defined
+      - (dockerhub_password | string | length) > 0
+    fail_msg: "Definir -e dockerhub_password=TON_PAT"
+
+- name: "Creer le secret {{ dockerhub_secret_name }} dans chaque namespace"
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ dockerhub_secret_name }}"
+        namespace: "{{ item }}"
+        labels:
+          app.kubernetes.io/part-of: saga
+      type: kubernetes.io/dockerconfigjson
+      stringData:
+        .dockerconfigjson: >-
+          {{ {"auths": {dockerhub_server: {"username": dockerhub_username, "password": dockerhub_password, "auth": ((dockerhub_username ~ ":" ~ dockerhub_password) | b64encode)}}} | to_json }}
+  loop: "{{ dockerhub_namespaces }}"

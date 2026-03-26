@@ -1,0 +1,14 @@
+# Inventaire pour le cluster workloads (site-service, uaa-service, etc.).
+# Mettre à jour ansible_host si l'IP change.
+
+all:
+  children:
+    k8s_master:
+      hosts:
+        workload-k8s-master:
+          ansible_host: 84.234.26.236
+    k8s_worker: {}
+
+  vars:
+    ansible_user: iyadris
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa

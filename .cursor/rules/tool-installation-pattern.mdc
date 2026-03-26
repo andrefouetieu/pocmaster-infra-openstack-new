@@ -192,12 +192,26 @@ Les outils sont installés **uniquement via `infra_platform`** (cluster platefor
     - <outil>_helm
 ```
 
+L'installation via Ansible directement (sans Terraform) utilise l'inventaire existant :
+
+```bash
+cd ansible
+ansible-playbook -i envs/platform/00_inventory.yml <outil>_install.yml
+```
+
 ---
 
 ## 5. Documentation — `docs/<OUTIL>.md`
 
+La doc de chaque outil doit documenter les **3 modes d'installation** :
+
+- **Option A** : Terraform (`install_<outil> = true` dans `infra_platform/terraform.tfvars`).
+- **Option B** : Script manuel (`cd tools/<outil> && ./install.sh`).
+- **Option C** : Ansible directement (`cd ansible && ansible-playbook -i envs/platform/00_inventory.yml <outil>_install.yml`).
+
+Contenu obligatoire :
 - Prérequis (cluster, kubectl, helm).
-- Commande d'installation (`cd tools/<outil> && ./install.sh`).
+- Les 3 options d'installation ci-dessus.
 - Accès : URL, NodePort, port-forward.
 - Configuration : fichiers à modifier (`values.yaml`), secrets à définir.
-- Référence croisée avec le README de l'outil.
+- Référence croisée avec le README de l'outil (`tools/<outil>/README.md`).

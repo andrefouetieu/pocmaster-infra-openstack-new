@@ -1,0 +1,22 @@
+---
+# Bootstrap GitOps : enregistre le depot Git (secret) et cree l'Application racine saga-delivery-root.
+# Preconditions : inventaire platform, cluster K8s accessible, Argo CD deja installe (argocd_install.yml),
+# kubectl configure pour root et/ou utilisateur SSH (k8s_cluster.yml / kubectl_config).
+# Logique applicative : ../scripts/argocd-bootstrap.sh a la racine infra-openstack (envsubst + kubectl apply).
+#
+# Exemple :
+#   cd ansible
+#   ansible-playbook -i envs/platform/00_inventory.yml argocd-bootstrap.yml \
+#     -e saga_gitops_repo_root=/Users/mac/IdeaProjects/saga-orchestration-case-study \
+#     -e argocd_git_token=ghp_xxx
+#
+# Depot public (sans secret repository) :
+#   ansible-playbook -i envs/platform/00_inventory.yml argocd-bootstrap.yml \
+#     -e saga_gitops_repo_root=/chemin/vers/saga-orchestration-case-study \
+#     -e argocd_bootstrap_apply_repo_secret=false
+#
+- name: Argo CD — bootstrap repo Git + root application (saga GitOps)
+  hosts: k8s_master
+  become: true
+  roles:
+    - argocd_bootstrap

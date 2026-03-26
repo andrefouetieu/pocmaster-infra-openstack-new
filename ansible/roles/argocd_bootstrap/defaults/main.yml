@@ -1,0 +1,14 @@
+---
+# Chemin absolu sur la machine qui lance Ansible (controller) vers le clone du repo saga-orchestration-case-study.
+saga_gitops_repo_root: ""
+
+# Repertoire sur le nœud cible (k8s_master) où sont copies les manifests avant execution du script.
+argocd_bootstrap_staging_dir: /tmp/argocd-bootstrap
+
+argocd_namespace: argocd
+
+# Si false : ne applique pas le secret repository (depot Git public HTTPS sans auth).
+argocd_bootstrap_apply_repo_secret: true
+
+# Token Git (PAT) pour le depot defini dans repository-secret.yaml.template — requis si apply_repo_secret.
+argocd_git_token: ""

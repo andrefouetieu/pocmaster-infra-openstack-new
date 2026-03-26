@@ -44,15 +44,40 @@ install_mongodb = true
 
 Renseigner `auth.rootPassword` et `auth.replicaSetKey` dans `tools/mongodb/values.yaml` **avant** le `terraform apply`. MongoDB sera installé automatiquement via Ansible après la création du cluster.
 
-### Option B : Installation manuelle
+### Option B : Installation manuelle (script)
 
 ```bash
+# Récupérer l'IP du master
+cd terraform/infra_platform
+export MASTER_IP=$(terraform output -raw k8s_master_floating_ip)
+export SSH_USER=$(terraform output -raw vm_ssh_user)
+
+# Récupérer le kubeconfig
+ssh -i ~/.ssh/id_rsa $SSH_USER@$MASTER_IP "sudo cat /etc/rancher/k3s/k3s.yaml" \
+  | sed "s/127.0.0.1/$MASTER_IP/" > ~/.kube/config-platform
+export KUBECONFIG=~/.kube/config-platform
+
+# Installer MongoDB
 cd tools/mongodb
-
-# Éditer values.yaml : renseigner auth.rootPassword et auth.replicaSetKey
-nano values.yaml
-
+nano values.yaml   # renseigner auth.rootPassword et auth.replicaSetKey
 ./install.sh
+```
+
+### Option C : Via Ansible directement
+
+Si le cluster est déjà créé et que tu veux relancer l'installation sans repasser par Terraform :
+
+```bash
+cd ansible
+ansible-playbook -i envs/platform/00_inventory.yml mongodb_install.yml
+```
+
+L'inventaire `envs/platform/00_inventory.yml` contient déjà l'IP du master, le user SSH et la clé. Si les IP ont changé, les mettre à jour :
+
+```bash
+cd terraform/infra_platform
+terraform output k8s_master_floating_ip   # → mettre à jour ansible_host
+terraform output vm_ssh_user              # → mettre à jour ansible_user
 ```
 
 ### Vérifier l'installation
@@ -292,7 +317,7 @@ Pour que les applications sur **infra_app** accèdent à MongoDB sur **infra_pla
 mongodb://myapp:motdepasse@<PLATFORM_FLOATING_IP>:30017/myappdb
 ```
 
-Le port 30017 est ouvert automatiquement si `install_mongodb=true` dans le security group.
+Le port 30017 est ouvert automatiquement dès que `k8s_master_floating_ip = true` dans le security group (sans condition sur `install_mongodb`).
 
 ---
 
@@ -338,7 +363,7 @@ L'arbiter n'a pas besoin de PVC. Si le pod est en Pending, vérifier les ressour
 
 ### Impossible de se connecter en externe
 
-- Vérifier que `install_mongodb=true` (port 30017 ouvert dans le security group)
+- Vérifier que `k8s_master_floating_ip = true` (le port 30017 est ouvert dans le security group dès qu'il y a une IP flottante)
 - Tester la connectivité : `nc -zv <MASTER_IP> 30017`
 - Vérifier le service : `kubectl get svc -n mongodb`
 

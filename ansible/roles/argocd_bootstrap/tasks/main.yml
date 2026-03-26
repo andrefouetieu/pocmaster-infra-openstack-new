@@ -1,0 +1,54 @@
+---
+- name: Exiger saga_gitops_repo_root
+  ansible.builtin.assert:
+    that:
+      - saga_gitops_repo_root is defined
+      - (saga_gitops_repo_root | string | length) > 0
+    fail_msg: >-
+      Definir -e saga_gitops_repo_root=/chemin/vers/saga-orchestration-case-study
+      (clone sur la machine qui execute ansible-playbook).
+
+- name: Verifier les fichiers bootstrap sur le controller
+  ansible.builtin.stat:
+    path: "{{ saga_gitops_repo_root }}/argocd/bootstrap/root-application.yaml"
+  delegate_to: localhost
+  become: false
+  register: _root_app
+  failed_when: not _root_app.stat.exists
+
+- name: Verifier le token si secret repository requis
+  ansible.builtin.assert:
+    that:
+      - (argocd_git_token | string | length) > 0
+    fail_msg: >-
+      argocd_git_token est requis lorsque argocd_bootstrap_apply_repo_secret est true
+      (ou passer -e argocd_bootstrap_apply_repo_secret=false pour un depot public).
+  when: argocd_bootstrap_apply_repo_secret | bool
+
+- name: Repertoire de staging sur le master K8s
+  ansible.builtin.file:
+    path: "{{ argocd_bootstrap_staging_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copier root-application.yaml vers le master
+  ansible.builtin.copy:
+    src: "{{ saga_gitops_repo_root }}/argocd/bootstrap/root-application.yaml"
+    dest: "{{ argocd_bootstrap_staging_dir }}/root-application.yaml"
+    mode: "0644"
+
+- name: Copier le template du secret repository vers le master
+  ansible.builtin.copy:
+    src: "{{ saga_gitops_repo_root }}/argocd/bootstrap/repository-secret.yaml.template"
+    dest: "{{ argocd_bootstrap_staging_dir }}/repository-secret.yaml.template"
+    mode: "0600"
+  when: argocd_bootstrap_apply_repo_secret | bool
+
+- name: Executer le script de bootstrap Argo CD
+  ansible.builtin.script: "{{ playbook_dir }}/../scripts/argocd-bootstrap.sh"
+  environment:
+    SAGA_BOOTSTRAP_DIR: "{{ argocd_bootstrap_staging_dir }}"
+    ARGOCD_NAMESPACE: "{{ argocd_namespace }}"
+    ARGOCD_BOOTSTRAP_APPLY_REPO_SECRET: "{{ argocd_bootstrap_apply_repo_secret | bool | lower }}"
+    GIT_TOKEN: "{{ argocd_git_token | default('') }}"
+  changed_when: true

@@ -1,0 +1,15 @@
+---
+# Namespaces où créer le secret dockerhub-creds.
+dockerhub_namespaces:
+  - saga-dev
+  - saga-prod
+
+# Nom du secret Kubernetes.
+dockerhub_secret_name: dockerhub-creds
+
+# Registry Docker (Docker Hub par défaut).
+dockerhub_server: https://index.docker.io/v1/
+
+# Credentials Docker Hub — obligatoires, à passer en -e ou via vault.
+dockerhub_username: ""
+dockerhub_password: ""   # utiliser un PAT (Personal Access Token) de préférence
